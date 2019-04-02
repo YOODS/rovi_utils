@@ -6,8 +6,8 @@
 1. カメラキャリブレーションと同様の手順にて、ロボット(アーム)のキャリブレーションを行うパッケージがある http://wiki.ros.org/robot_calibration
 2. 推定される誤差は関節角の原点オフセットである(**関節原点**として試験成績書などに記録があると思います)
 3. robot_calibrationパッケージを使うには、少なくとも**URDF**が必要
-4. 算出された誤差をロボットに反映させる方法は、ロボットメーカに問い合わせが必要
-5. 本パッケージの使用経験者を捜索中
+4. その他、キャリブレーションボードが限定されるような(実施経験者を探している)
+5. 算出された誤差をロボットに反映させる方法は、ロボットメーカに問い合わせが必要
 
 ---
 
@@ -25,7 +25,7 @@
 のような式で関節の回転角から算出できる。**ROSではロボットのURDF定義からTfによってリアルタイムに求められる。**  
 ただし式(1)は誤差を含まない理想モデルのため、現実には機構の製作誤差等に因る誤差がTfに含まれる。主な誤差要因は
 1. 関節の原点オフセット
-2. リンク機構精度(ジョイント間Tfの誤差)
+2. リンク機構の製作精度(ジョイント間Tfの誤差)
 
 である。そこで式(1)これらの誤差を含んだ式に書き換えると
 
@@ -48,12 +48,10 @@
 
 <img align="center" src="https://latex.codecogs.com/gif.latex?S=\left[\begin{array}{rrr}x\\y\\z\end{array}\right]" />
 
-- 例題(1) 座標系Bにおける点Pの座標<img src="https://latex.codecogs.com/gif.latex?{}^{B}P=\left[\begin{array}{rrr}x\\y\\z\\1\\ \end{array}\right]" />
-を座標系Aでの座標に変換する
+- 例題(1) 座標系Bにおける点Pの座標<i><sup>B</sup>P</i>を座標系Aでの座標に変換する
 
 <img src="https://latex.codecogs.com/gif.latex?{}^{A}P={}^{A}T_{B}\cdot{}^{B}P" />
 
-- 例題(2) 座標系Bにおける剛体MのPose(座標+姿勢)<img src="https://latex.codecogs.com/gif.latex?{}^{B}M=\left[\begin{array}{ccc|c}&&&\\&\smash{\huge{R_M}}&&\smash{\huge{S_M}}\\&&&\\ \hline 0&0&0&1\end{array}\right]" />
-のとき、これを座標系Aに変換する
+- 例題(2) 座標系Bにおける剛体MのPose(座標+姿勢)<i><sup>B</sup>M</i>を座標系Aに変換する
 
 <img src="https://latex.codecogs.com/gif.latex?{}^{A}M={}^{A}T_{B}\cdot{}^{B}M" />
