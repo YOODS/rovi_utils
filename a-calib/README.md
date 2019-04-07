@@ -1,6 +1,6 @@
 # ロボット(アーム)キャリブレーション
 
-<img src="a-calib.png" />
+<img src="a-calib.png" width="400px" />
 
 ## 概要
 1. ロボット(カメラ)キャリブレーションと同様の手順にて、ロボットアームのリンク機構のキャリブレーションを行うパッケージがある http://wiki.ros.org/robot_calibration
