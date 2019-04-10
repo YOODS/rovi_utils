@@ -1,0 +1,22 @@
+<launch>
+  <env name="ROVI_PATH" value="$(find rovi)" />
+
+  <!-- param -->
+  <rosparam command="load" ns="/" file="$(env HOME)/.ros/rcalib.yaml" />
+  <rosparam command="load" ns="/" file="$(find rovi_utils)/cropper/cropper.yaml" />
+  <rosparam command="load" ns="/" file="$(find rovi_utils)/cropper/dummy_tf.yaml" />
+
+  <!-- rviz -->
+  <node ns="/scene" pkg="rovi" type="floats2pc" name="floats2pc" args="/world" />
+  <node ns="/cropper/scene" pkg="rovi" type="floats2pc" name="floats2pc" args="/world" />
+  <node ns="/cropper/cropped_scene" pkg="rovi" type="floats2pc" name="floats2pc" args="/world" />
+
+  <!-- param watcher -->
+  <node pkg="rovi" type="param_watch.js" name="param_cropping" args="/cropper /cropper/param" />
+
+  <!-- solver -->
+  <node ns="/cropper" pkg="rovi_utils" type="cropper_solver.py" name="cropper" output="screen" />
+
+</launch>
+
+

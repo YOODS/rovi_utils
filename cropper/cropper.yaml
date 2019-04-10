@@ -1,0 +1,11 @@
+cropper:
+  source: '/rovi/ps_floats'
+  zcrop:
+    near: 0.0
+    far: 0.0
+  sphere:
+    x: 0.0
+    y: 0.0
+    r: 0.0
+  voxel: 2.0
+  frame_id: 4

@@ -1,0 +1,11 @@
+cropper:
+  source: '/rovi/ps_floats'	# シーン点群Topic名(/rovi/ps_floats)
+  zcrop:			# Z方向クロップパラメータ
+    near:			# Z方向クロップ位置（カメラ側）
+    far:			# Z方向クロップ位置（床側）
+  sphere:			# 円クロップパラメータ
+    x:				# 円の中心X座標
+    y:				# 円の中心Y座標
+    r:				# 半径
+  voxel:			# voxelサイズ(0の場合はvoxel化なし)
+  frame_id:			# 出力座標系

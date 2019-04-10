@@ -1,0 +1,10 @@
+cropper:
+  dummy_tf:
+    translation:
+      x: 355.0
+      y: 0.0
+      z: 640.0
+    rotation:
+      x: 180.0
+      y: 0.0
+      z: 180.0

@@ -1,0 +1,10 @@
+cropper:
+  dummy_tf:		# UI用からのダミー撮像位置通知用
+    translation:	# 座標
+      x: 355.0		# x座標
+      y: 0.0		# y座標
+      z: 640.0		# z座標
+    rotation:		# 回転
+      x: 180.0		# x
+      y: 0.0		# y
+      z: 180.0		# z
