@@ -240,7 +240,7 @@ def output_ply_type5(P):
   return
 
 ##########################################
-# output_ply_type5
+# output_ply_type6
 # 出力座標系
 # frame_id	カメラ		ワーク		出力座標系 
 # 6		ロボット	固定		ロボット
@@ -447,6 +447,9 @@ def crop():
 
     # 変換したRTを今まで撮影したRTにスタックする
     compCroppedScenePn=np.vstack((compCroppedScenePn,P))
+
+    ###### DEBUG
+    #cv2.ppf_match_3d.writePLY(compCroppedScenePn.astype(np.float32), '/tmp/DEBUG.ply')
 
     ###print '###### croppedScenePn after=',compCroppedScenePn
 
