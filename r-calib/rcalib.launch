@@ -1,0 +1,16 @@
+<launch>
+  <rosparam command="load" file="$(find rovi_utils)/r-calib/$(arg gridboard).yaml" />
+  <param name="/rovi/live/camera/SoftwareTriggerRate" type="double" value="2" />
+  <param name="/rovi/pshift_genpc/projector/Mode" type="int" value="1" />
+  <node pkg="rovi" type="grid_node" name="grid_node" args="/rovi/left/remap/Kn">
+    <remap from="gridboard/image_in" to="/rovi/left/image_rect" />
+  </node>
+  <node pkg="visp_hand2eye_calibration" type="visp_hand2eye_calibration_calibrator" name="calibrator" />
+  <node ns="/gridboard/image_out" pkg="image_view" type="image_view" name="image_view" args="image:=/gridboard/image_out" />
+  <node ns="/rcalib" pkg="rovi_utils" type="rcalib.py" name="rcalib" output="screen">
+    <remap from="grid/tf" to="/gridboard/tf" />
+    <remap from="robot/tf" to="/robot/tf" />
+  </node>
+  <node pkg="rqt_param_manager" type="rqt_param_manager" name="rcalib_gui" args="conf:=$(find rovi_utils)/r-calib/rcalib.ui dump:=$(find rovi)/yaml/param.yaml" />
+</launch>
+
