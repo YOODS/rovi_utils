@@ -1,0 +1,14 @@
+tf_config:
+  flange: J6
+  mount: J5
+  camera: camera
+  transform:
+    rotation:
+      w: 1
+      x: 0
+      y: 0
+      z: 0
+    translation:
+      x: 0
+      y: 0
+      z: 1

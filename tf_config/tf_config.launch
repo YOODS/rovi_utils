@@ -1,0 +1,5 @@
+<launch>
+  <rosparam command="load" file="$(find rovi_utils)/tf_config.yaml" />
+  <node pkg="rovi_utils" type="tf_config.py" name="tf_config" output="screen" />
+  <node pkg="rqt_param_manager" type="rqt_param_manager" name="tf_config_gui" args="conf:=$(find rovi_utils)/tf_config/tf_config.ui dump:=$(find rovi_utils)/tf_config.yaml" />
+</launch>

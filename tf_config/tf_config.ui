@@ -1,0 +1,12 @@
+"Title:","TF Config"
+"Title:","座標フレーム"
+"Text:/tf_config/flange","フランジフレーム名"
+"Text:/tf_config/mount","カメラマウントフレーム名"
+"Number:/tf_config/transform/translation/x","カメラマウント／カメラ変換 位置 X"
+"Number:/tf_config/transform/translation/y","Y"
+"Number:/tf_config/transform/translation/z","Z"
+"Number:/tf_config/transform/rotation/x","回転 X"
+"Number:/tf_config/transform/rotation/y","Y"
+"Number:/tf_config/transform/rotation/z","Z"
+"Number:/tf_config/transform/rotation/w","W"
+
