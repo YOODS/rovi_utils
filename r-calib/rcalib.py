@@ -5,24 +5,18 @@ import numpy as np
 import math
 import roslib
 import rospy
+import tf
+import tf2_ros
+import time
 from std_msgs.msg import Bool
 from std_msgs.msg import Header
 from std_msgs.msg import Float64
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Transform
+from geometry_msgs.msg import TransformStamped
 from visp_hand2eye_calibration.srv import reset,resetRequest,resetResponse,compute_effector_camera_quick,compute_effector_camera_quickRequest,compute_effector_camera_quickResponse
 from visp_hand2eye_calibration.msg import TransformArray
 import tflib
-
-def cb_robot(tf):
-  global bTm
-  bTm=tflib.toRT(tf)
-  return
-
-def cb_grid(tf):
-  global cTs
-  cTs=tflib.toRT(tf)
-  return
 
 def cb_X0(f):
   global cTsAry,bTmAry
@@ -33,8 +27,24 @@ def cb_X0(f):
 def cb_X1(f):
   global cTsAry,bTmAry
   print "cbX1"
-  cTsAry.transforms.append(cTs)
-  bTmAry.transforms.append(bTm)
+  try:
+    cTs=tfBuffer.lookup_transform('camera', 'gridboard', rospy.Time())
+  except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+    print "tf2 gridboard lookup exception"
+    done=Bool(); done.data=False; pb_Y1.publish(done)
+    return
+  try:
+    if mount == "world":
+      bTm=tfBuffer.lookup_transform('world', 'flange', rospy.Time())  #The board may be held on the flange
+    else:
+      bTm=tfBuffer.lookup_transform('world', 'mount', rospy.Time())  #The camera mount may be attached on some link
+  except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+    print "tf2 flange lookup exception"
+    done=Bool(); done.data=False; pb_Y1.publish(done)
+    return
+  print "bTm",mount,bTm.transform
+  cTsAry.transforms.append(cTs.transform)
+  bTmAry.transforms.append(bTm.transform)
   done=Bool(); done.data=True; pb_Y1.publish(done)
   return
 
@@ -49,29 +59,20 @@ def save_input(name):
   np.savetxt(name,Tcsv)
   return
 
-def save_result_mTs(name):
+def save_result(name):
   Tcsv=np.array([]).reshape((-1,7))
   for M,S in zip(bTmAry.transforms,cTsAry.transforms):
-    mTb=tflib.toRT(M).I
     cTs=tflib.toRT(S)
-    mts=tflib.fromRTtoVec(np.dot(np.dot(mTb,bTc),cTs))
-    Tcsv=np.vstack((Tcsv,mts))
+    if mount == "world":
+      mTb=tflib.toRT(M).I
+      xTs=tflib.fromRTtoVec(np.dot(np.dot(mTb,mTc),cTs))
+    else:
+      bTm=tflib.toRT(M)
+      xTs=tflib.fromRTtoVec(np.dot(np.dot(bTm,mTc),cTs))
+    Tcsv=np.vstack((Tcsv,xTs))
   Tn=map(np.linalg.norm,Tcsv.T[:3].T)
-  err=Float64(); err.data=max(Tn)-min(Tn); pb_mTerr.publish(err)
-  print "mTs translation error:",err
-  np.savetxt(name,Tcsv)
-  return
-
-def save_result_bTs(name):
-  Tcsv=np.array([]).reshape((-1,7))
-  for M,S in zip(bTmAry.transforms,cTsAry.transforms):
-    bTm=tflib.toRT(M)
-    cTs=tflib.toRT(S)
-    bts=tflib.fromRTtoVec(np.dot(np.dot(bTm,mTc),cTs))
-    Tcsv=np.vstack((Tcsv,bts))
-  Tn=map(np.linalg.norm,Tcsv.T[:3].T)
-  err=Float64(); err.data=max(Tn)-min(Tn); pb_bTerr.publish(err)
-  print "bTs translation error:",err
+  err=Float64(); err.data=max(Tn)-min(Tn); pb_err.publish(err)
+  print "Calibration error:",err
   np.savetxt(name,Tcsv)
   return
 
@@ -86,63 +87,47 @@ def set_param_tf(name,tf):
   return
 
 def call_visp():
-  global cTsAry,bTmAry
-  global bTc,mTc
-
+  global cTsAry,bTmAry,mTc
+  print "visp",mount
   creset=None
   try:
     creset=rospy.ServiceProxy('/reset',reset)
   except rospy.ServiceException, e:
     print 'Visp reset failed:'+e
     return
-
   calibrator=None
   try:  #solving as fixed camera
     calibrator=rospy.ServiceProxy('/compute_effector_camera_quick',compute_effector_camera_quick)
   except rospy.ServiceException, e:
     print 'Visp call failed:'+e
     return
-
   creset(resetRequest())
   req=compute_effector_camera_quickRequest()
   req.camera_object=cTsAry
-  mTbAry=TransformArray()
-  for tf in bTmAry.transforms:
-    mTbAry.transforms.append(tflib.inv(tf))
-  req.world_effector=mTbAry
-  try:  #solving as fixed camera
-    res=calibrator(req)
-    print "calib fixed",res.effector_camera
-    set_param_tf('/rovi/calibration/bTc',res.effector_camera)
-    bTc=tflib.toRT(res.effector_camera)
-  except rospy.ServiceException, e:
-    print 'Visp call failed:'+e
-    return
-
-  creset(resetRequest())
-  req=compute_effector_camera_quickRequest()
-  req.camera_object=cTsAry
-  req.world_effector=bTmAry
+  if mount == "world":  #fixed camera
+    mTbAry=TransformArray()
+    for tf in bTmAry.transforms:
+      mTbAry.transforms.append(tflib.inv(tf))
+    req.world_effector=mTbAry
+    print "calib fixed"
+  else:
+    req.world_effector=bTmAry
+    print "calib handeye"
   try:
     res=calibrator(req)
-    print "calib handeye",res.effector_camera
-    set_param_tf('/rovi/calibration/mTc',res.effector_camera)
+    print res.effector_camera
+    set_param_tf('/tf_config/transform',res.effector_camera)
     mTc=tflib.toRT(res.effector_camera)
   except rospy.ServiceException, e:
     print 'Visp call failed:'+e
-    return
-
   return
 
 def cb_X2(f):
   global cTsAry,bTmAry
-  global bTc,mTc
-  save_input('input.txt')
+  save_input('rcalib_input.txt')
   call_visp()
-  save_result_mTs('result_mts.txt')
-  save_result_bTs('result_bts.txt')
+  save_result('rcalib_result.txt')
   return
-
 
 def cb_X3(f):
   global cTsAry,bTmAry
@@ -164,27 +149,23 @@ def cb_X3(f):
 ###############################################################
 rospy.init_node('rcalib',anonymous=True)
 
-pb_bTerr=rospy.Publisher('error/bTs',Transform,queue_size=1)
-pb_mTerr=rospy.Publisher('error/mTs',Transform,queue_size=1)
-pb_Y1=rospy.Publisher('Y1',Bool,queue_size=1)    #X1 done
-pb_Y2=rospy.Publisher('Y2',Bool,queue_size=1)    #X2 done
+pb_err=rospy.Publisher('~error',Float64,queue_size=1)
+pb_Y1=rospy.Publisher('~Y1',Bool,queue_size=1)    #X1 done
+
+rospy.Subscriber('~X0',Bool,cb_X0)
+rospy.Subscriber('~X1',Bool,cb_X1)
+rospy.Subscriber('~X2',Bool,cb_X2)
+rospy.Subscriber('~X3',Bool,cb_X3)
 
 cb_X0(Bool())
-bTm=np.eye(4,dtype=float)
-cTs=np.eye(4,dtype=float)
-bTc=np.eye(4,dtype=float)
-mTc=np.eye(4,dtype=float)
-if rospy.has_param('/rovi/calibration/bTc'):
-  bTc=tflib.toRT(tflib.dict2tf(rospy.get_param('/rovi/calibration/bTc')))
-if rospy.has_param('/rovi/calibration/mTc'):
-  mTc=tflib.toRT(tflib.dict2tf(rospy.get_param('/rovi/calibration/mTc')))
 
-rospy.Subscriber('robot/tf',Transform,cb_robot)
-rospy.Subscriber('grid/tf',Transform,cb_grid)
-rospy.Subscriber('X0',Bool,cb_X0)
-rospy.Subscriber('X1',Bool,cb_X1)
-rospy.Subscriber('X2',Bool,cb_X2)
-rospy.Subscriber('X3',Bool,cb_X3)
+tfBuffer = tf2_ros.Buffer()
+tfListener = tf2_ros.TransformListener(tfBuffer)
+
+mount="world"
+if rospy.has_param("/tf_config/mount"):
+  mount=rospy.get_param("/tf_config/mount")
+print "mount",mount
 
 try:
   rospy.spin()
