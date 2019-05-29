@@ -15,41 +15,27 @@ from geometry_msgs.msg import TransformStamped
 import tflib
 
 def cb_reload(f):
-  print "tf_config reload"
+  conf=rospy.get_param("~")
+  print "tf_config",conf
   trarray=[]
-  if rospy.has_param("~flange"):
-    flange=rospy.get_param("~flange")
-    print "flange",flange
-    if flange != "flange":
-      tr0=TransformStamped()
-      tr0.header.stamp=rospy.Time.now()
-      tr0.transform.rotation.w=1
-      tr0.header.frame_id=flange
-      tr0.child_frame_id="flange"
-      trarray.append(tr0)
+  if "alias" in conf:
+    alias=conf.pop("alias")
+    for name in alias:
+      tr=TransformStamped()
+      tr.header.stamp=rospy.Time.now()
+      tr.transform.rotation.w=1
+      tr.header.frame_id=alias[name]
+      tr.child_frame_id=name
+      trarray.append(tr)
 
-  mount="world"
-  if rospy.has_param("~mount"):
-    mount=rospy.get_param("~mount")
-    print "mount",mount
-  tr1=TransformStamped()
-  tr1.header.stamp=rospy.Time.now()
-  tr1.transform.rotation.w=1
-  tr1.header.frame_id=mount
-  tr1.child_frame_id="mount"
-  trarray.append(tr1)
-
-  camera="camera"
-  if rospy.has_param("~camera"):
-    camera=rospy.get_param("~camera")
-  tr2=TransformStamped()
-  tr2.header.stamp=rospy.Time.now()
-  tr2.transform.rotation.w=1
-  if rospy.has_param("~transform"):
-    tr2.transform=tflib.dict2tf(rospy.get_param("~transform"))
-  tr2.header.frame_id="mount"
-  tr2.child_frame_id=camera
-  trarray.append(tr2)
+  for name in conf:
+    attr=conf[name]
+    tr=TransformStamped()
+    tr.header.stamp=rospy.Time.now()
+    tr.transform=attr["transform"]
+    tr.header.frame_id=name
+    tr.child_frame_id=attr["child_frame_id"]
+    trarray.append(tr)
 
   broadcaster.sendTransform(trarray)
 
