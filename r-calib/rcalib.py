@@ -163,8 +163,8 @@ tfBuffer = tf2_ros.Buffer()
 tfListener = tf2_ros.TransformListener(tfBuffer)
 
 mount="world"
-if rospy.has_param("/tf_config/mount"):
-  mount=rospy.get_param("/tf_config/mount")
+if rospy.has_param("/tf_config/alias/mount"):
+  mount=rospy.get_param("/tf_config/alias/mount")
 print "mount",mount
 
 try:
