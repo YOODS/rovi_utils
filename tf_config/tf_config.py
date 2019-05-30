@@ -32,7 +32,7 @@ def cb_reload(f):
     attr=conf[name]
     tr=TransformStamped()
     tr.header.stamp=rospy.Time.now()
-    tr.transform=attr["transform"]
+    tr.transform=tflib.dict2tf(attr["transform"])
     tr.header.frame_id=name
     tr.child_frame_id=attr["child_frame_id"]
     trarray.append(tr)
