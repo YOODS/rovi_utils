@@ -1,15 +1,38 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(rovi_utils)
 
-find_package(catkin REQUIRED)
-
-catkin_package()
+find_package(catkin REQUIRED COMPONENTS
+  roscpp
+  std_msgs
+  geometry_msgs
+  sensor_msgs
+  tf2_ros
+  rovi
+)
 
 catkin_python_setup()
 
-## Specify additional locations of header files
-## Your package locations should be listed before other locations
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+  geometry_msgs
+  sensor_msgs
+  rovi
+)
+
+catkin_package(
+  CATKIN_DEPENDS roscpp std_msgs geometry_msgs sensor_msgs tf2_ros
+)
+
+
 include_directories(
-# include
+  json11
   ${catkin_INCLUDE_DIRS}
 )
+
+add_definitions("-std=c++11")
+
+#add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_executable(floats3pc src/floats3pc.cpp json11/json11.cpp)
+target_link_libraries(floats3pc ${catkin_LIBRARIES})
+
