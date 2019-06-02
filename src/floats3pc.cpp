@@ -45,6 +45,7 @@ void RT(std::string dst,std::string src){
     T1=tf.translation.x;
     T2=tf.translation.y;
     T3=tf.translation.z;
+    ROS_INFO("floats3pc::RT=%s %s",Param["frame_id"].c_str(),Param["input_frame_id"].c_str());
   }
   catch (tf2::TransformException &ex) {
     ROS_WARN("floats3pc::%s",ex.what());
@@ -57,7 +58,6 @@ void RT(std::string dst,std::string src){
 
 void pubpc(){
   int N=Pdata.size()/3;
-  ROS_INFO("Pdata=%d",N);
   sensor_msgs::PointCloud pts;
   pts.header.stamp=ros::Time::now();
   pts.header.frame_id=Param["frame_id"];
@@ -85,12 +85,23 @@ void param(const std_msgs::String& buf){
   std::cerr<<"float2pc::param "<<s<<std::endl;
   std::string err;
   auto dict=json11::Json::parse(s, err);
-  if(dict.object_items().count("frame_id")>0){
-    Param["frame_id"]=dict["frame_id"].string_value();
-    pubpc();
+  auto frm=dict["frame_id"].string_value();
+  auto ifrm=dict["input_frame_id"].string_value();
+  std::cerr<<"float2pc::parse "<<err<<" "<<frm<<" "<<ifrm<<std::endl;
+  int cf=0;
+  if(frm.size()>0){
+    if(Param["frame_id"]!=frm){
+      cf++;
+      Param["frame_id"]=frm;
+    }
   }
-  std::cerr<<"float2pc::frame_id "<<Param["frame_id"]<<std::endl;
-  std::cerr<<"float2pc::input_frame_id "<<Param["input_frame_id"]<<std::endl;
+  if(ifrm.size()>0){
+    if(Param["input_frame_id"]!=ifrm){
+      cf++;
+      Param["input_frame_id"]=ifrm;
+    }
+  }
+  if(cf) pubpc();
 }
 
 int main(int argc, char **argv){
