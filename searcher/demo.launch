@@ -1,0 +1,6 @@
+<launch>
+  <node pkg="rovi_utils" type="demo.py" name="solver" args="model:=$(find rovi_utils)/searcher/model.ply scene:=$(find rovi_utils)/searcher/sample.ply" output="screen" />
+  <node ns="/solver/in" pkg="rovi" type="floats2pc" name="floats2pc" args="/camera" />
+  <node ns="/solver/out" pkg="rovi" type="floats2pc" name="floats2pc" args="/camera" />
+  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find rovi_utils)/searcher/demo.rviz" />
+</launch>

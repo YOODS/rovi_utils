@@ -4,6 +4,7 @@
 #include <tf2_ros/transform_listener.h>
 #include <sensor_msgs/PointCloud.h>
 #include <std_msgs/String.h>
+#include <std_msgs/Bool.h>
 #include <rovi/Floats.h>
 #include <json11.hpp>
 #include <string>
@@ -11,7 +12,7 @@
 
 ros::NodeHandle *nh;
 ros::Publisher *pub;
-tf2_ros::Buffer *tfBuffer;
+tf2_ros::Buffer *tfBuffer=NULL;
 tf2_ros::TransformListener *tfListener;
 
 static std::map<std::string,std::string> Param{
@@ -29,7 +30,7 @@ std::vector<float> &Pdata=p0;
 void RT(std::string dst,std::string src){
   geometry_msgs::TransformStamped transformStamped;
   try{
-    transformStamped=tfBuffer->lookupTransform(Param["frame_id"],Param["input_frame_id"],ros::Time(0));
+    transformStamped=tfBuffer->lookupTransform(Param["frame_id"],Param["input_frame_id"],ros::Time::now());
     auto tf=transformStamped.transform;
     auto x=tf.rotation.x;
     auto y=tf.rotation.y;
@@ -104,6 +105,15 @@ void param(const std_msgs::String& buf){
   if(cf) pubpc();
 }
 
+void clear(const std_msgs::Bool&){
+  if(tfBuffer!=NULL){
+    delete tfBuffer;
+    delete tfListener;
+  }
+  tfBuffer=new tf2_ros::Buffer;  
+  tfListener=new tf2_ros::TransformListener(*tfBuffer);
+}
+
 int main(int argc, char **argv){
   std::cerr<<"argc "<<argc<<std::endl;
   if (argc >= 6){
@@ -115,12 +125,15 @@ int main(int argc, char **argv){
   nh=&n;
   ros::Subscriber s0=n.subscribe("floats",1,subn);
   ros::Subscriber s1=n.subscribe("param",1,param);
+  ros::Subscriber s2=n.subscribe("clear",1,clear);
   ros::Publisher p0=n.advertise<sensor_msgs::PointCloud>("pc",1);
   pub=&p0;
-  tf2_ros::Buffer tfBuffer_;
-  tf2_ros::TransformListener tfListener_(tfBuffer_);
-  tfBuffer=&tfBuffer_;
-  tfListener=&tfListener_;
+//  tf2_ros::Buffer tfBuffer_;
+//  tf2_ros::TransformListener tfListener_(tfBuffer_);
+//  tfBuffer=&tfBuffer_;
+//  tfListener=&tfListener_;
+  tfBuffer=new tf2_ros::Buffer;
+  tfListener=new tf2_ros::TransformListener(*tfBuffer);
 
   ros::spin();
   return 0;
