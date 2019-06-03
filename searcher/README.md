@@ -18,51 +18,16 @@ OPen3D-0.6からPipのバージョンが9.0.1以上が必要となりました�
 pip install pip==9.0.3
 ~~~
 
-### 単体テスト
-Open3Dソルバー(o3d_solver.py)の単体テストは、このモジュールを単体でRUNします。
-~~~
-./o3d_solver.py
-~~~
-
 ## Parameter
 ### ~Config
 
 |name|type|description|
 |:----|:----|:----|
 |register_frame_id|string[]|登録時にファイル保存するフレーム名。別名のマスターフレーム(*master0..n*)が生成される|
-|place_frame_id|string|解析結果フレーム(*search0..n*)を配置するフレーム名|
-
-設定例(ハンドアイピッキング)
-~~~
-Config={
-  "lines":["surface"],
-  "solver":"o3d_solver",
-  "register_frame_id":["camera/capture0"],
-  "place_frame_id":"camera/capture0"
-}
-~~~
-設定例(位置合わせ)
-~~~
-Config={
-  "lines":["surface","marker","edge"],
-  "solver":"???_solver",
-  "register_frame_id":["flange/capture0","flange/capture1","flange/capture2"],
-  "place_frame_id":"flange"
-}
-~~~
+|place_frame_id|string|解析結果フレーム(*solve0..n*)を配置するフレーム名|
 
 ### ~  
 ローカルパラメータ領域にSolverパラメータを配します。
-
-### Example  
-ハンドカメラで撮影した点群を、ベース座標系に変換し出力する。ソルバーは標準ソルバー(o3d_solver.py)を使う。
-~~~
-  <node ... args="input:=c parent:=m output:=b solver:=$(find rovi_searcher)/o3d_solver" />
-~~~
-メカニカルインタフェース座標系の点群を、同座標系で出力する。ソルバーはパッケージwpcのソルバー(wpc/solver.py)を使う。
-~~~
-  <node ... args="input:=m solver:=$(find wpc)/solver" />
-~~~
 
 ## Topics
 ### To subscribe
@@ -79,4 +44,20 @@ Config={
 
 |Topic|タイプ|説明|
 |:----|:----|:----|
-|~master/*/float|Floats|モデル点群。モデルをロードしたとき、およびシーンをsubscribeしたとき初期位置の点群をpublishする|
+|~master/*/floats|Floats|モデル点群。モデルをロードしたとき、およびシーンをsubscribeしたとき初期位置の点群をpublishする|
+
+----
+## Solver標準化  
+SearcherはSolverを外部モジュール化し、様々なアルゴリズムのSolverを組み込むように設計されています。Searcherに組み込み可能なSolverは以下の設計標準に適合していなければなりません。
+### インタフェース  
+Solverモジュールは以下のメソッド(モジュール内では関数)が必須です。
+1. learn(master_data:list of Numpy array,param:dictionary)
+2. result:dictionary = solve(scene_data:list of Numpy array,param:dictionary)  
+ - resultには"transform"キーと、その値としてTransformの配列が必須です
+ - resultには"transform"以外の任意のキーを含むことが出来ます。これはマッチングのスコアとしてscoreトピックにpublishされます。データ形式はfloatの配列に限ります。
+
+### テスト  
+ソルバーのテストは、ローカルのテストデータなどを使って、単体テストが実行できるように実装しなければなりません。本Respositryの*o3d_solver.py*を参考にしてください。
+~~~
+./o3d_solver.py
+~~~
