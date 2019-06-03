@@ -16,6 +16,8 @@ from rovi.msg import Floats
 from rospy.numpy_msg import numpy_msg
 from std_msgs.msg import Bool
 from std_msgs.msg import String
+from std_msgs.msg import Float32MultiArray
+from std_msgs.msg import MultiArrayDimension
 from sensor_msgs.msg import PointCloud
 from geometry_msgs.msg import Transform
 from geometry_msgs.msg import TransformStamped
@@ -29,7 +31,8 @@ Config={
   "solver":"o3d_solver",
   "scene_frame_id":["camera/capture0"],
   "master_frame_id":["camera/master0"],
-  "place_frame_id":"camera/capture0"
+  "place_frame_id":"camera/capture0",
+  "tf_delay": 0.1
 }
 
 def P0():
@@ -39,6 +42,10 @@ def np2F(d):  #numpy to Floats
   f=Floats()
   f.data=np.ravel(d)
   return f
+
+def cb_master(event):
+  for n,l in enumerate(Config["lines"]):
+    pub_pcs[n].publish(np2F(Model[n]))
 
 def cb_save(msg):
   global Model,tfReg
@@ -54,9 +61,8 @@ def cb_load(msg):
   global Model,tfReg
   for n,l in enumerate(Config["lines"]):
     pcd=o3d.read_point_cloud(Config["path"]+"/"+l+".ply")
-    m=np.reshape(np.asarray(pcd.points),(-1,3))
-    pub_pcs[n].publish(np2F(m))
-    Model[n]=m
+    Model[n]=np.reshape(np.asarray(pcd.points),(-1,3))
+  rospy.Timer(rospy.Duration(Config["tf_delay"]),cb_master,oneshot=True)
   tfReg=[]
   for n,m in enumerate(Config["master_frame_id"]):
     path=Config["path"]+"/"+m.replace('/','_')+".yaml"
@@ -77,15 +83,32 @@ def cb_load(msg):
       print trf
       tfReg.append(tf)
   broadcaster.sendTransform(tfReg)
-  solver.learn(Model)
+  Param.update(rospy.get_param("~param"))
+  solver.learn(Model,Param)
   pub_msg.publish("searcher::model learning completed")
 
+def cb_score(event):
+  global solveResult
+  cb_master(event)
+  score=Float32MultiArray()
+  for sc in solveResult:
+    d=MultiArrayDimension()
+    d.label=sc
+    d.size=len(solveResult[sc])
+    d.stride=1
+    print "score",d.label
+#    score.dim.append(d)
+#  score.data_offset=0
+
 def cb_solve(msg):
+  global solveResult
   if [x for x in Scene if x is None]:
     pub_msg.publish("searcher::short scene data")
     ret=Bool();ret.data=False;pub_Y2.publish(ret)
     return
-  RTs,scores=solver.solve(Scene,Param)
+  Param.update(rospy.get_param("~param"))
+  solveResult=solver.solve(Scene,Param)
+  RTs=solveResult["transform"]
   pub_msg.publish("searcher::"+str(len(RTs))+" model searched")
   tfSolve=[]
   for n,rt in enumerate(RTs):
@@ -97,8 +120,8 @@ def cb_solve(msg):
     tfSolve.append(tf)
   tfSolve.extend(tfReg)
   broadcaster.sendTransform(tfSolve)
-  for n,l in enumerate(Config["lines"]):
-    pub_pcs[n].publish(np2F(Model[n]))
+  solveResult.pop("transform")
+  rospy.Timer(rospy.Duration(Config["tf_delay"]),cb_score,oneshot=True)
 
 def cb_ps(msg,n):
   global Scene
@@ -110,8 +133,8 @@ def cb_clear(msg):
   global Scene
   for n,l in enumerate(Config["lines"]):
     Scene[n]=None
-    pub_pcs[n].publish(np2F(Model[n]))
   broadcaster.sendTransform([])
+  rospy.Timer(rospy.Duration(1),cb_master,oneshot=True)
 
 def parse_argv(argv):
   args={}
@@ -133,9 +156,10 @@ except Exception as e:
   print "get_param exception:",e.args
 print "Config",Config
 try:
-  Param.update(rospy.get_param("~"))
+  Param.update(rospy.get_param("~param"))
 except Exception as e:
   print "get_param exception:",e.args
+print "Param",Param
 
 ###load solver
 exec("import "+Config["solver"]+" as solver")
@@ -149,6 +173,7 @@ for n,c in enumerate(Config["lines"]):
   rospy.Subscriber("~in/"+c+"/floats",numpy_msg(Floats),cb_ps,n)
   pub_pcs.append(rospy.Publisher("~master/"+c+"/floats",numpy_msg(Floats),queue_size=1))
 pub_Y2=rospy.Publisher("~solved",Bool,queue_size=1)
+pub_score=rospy.Publisher("~score",Float32MultiArray,queue_size=1)
 rospy.Subscriber("~clear",Bool,cb_clear)
 rospy.Subscriber("~solve",Bool,cb_solve)
 rospy.Subscriber("~save",Bool,cb_save)

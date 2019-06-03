@@ -176,7 +176,7 @@ except Exception as e:
   print "get_param exception:",e.args
 print "Config",Config
 try:
-  Param.update(rospy.get_param("~"))
+  Param.update(rospy.get_param("~param"))
 except Exception as e:
   print "get_param exception:",e.args
 print "Param",Param
@@ -185,7 +185,7 @@ print "Param",Param
 rospy.Subscriber("~in/floats",numpy_msg(Floats),cb_ps)
 rospy.Subscriber("~clear",Bool,cb_clear)
 rospy.Subscriber("~capture",Bool,cb_capture)
-rospy.Subscriber("~param",String,cb_param)
+rospy.Subscriber("~update",String,cb_param)
 rospy.Subscriber("~setcrop",Bool,cb_setcrop)
 ###Output topics
 pub_crop=rospy.Publisher("~out/floats",numpy_msg(Floats),queue_size=1)

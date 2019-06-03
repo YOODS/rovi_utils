@@ -5,7 +5,6 @@ import open3d as o3d
 import copy
 import math
 
-param={'radius_normal':2.0,'radius_feature':5.0,'maxnn_normal':30,'maxnn_feature':100,'distance_threshold':1.5,'icp_threshold':5.0}
 modFtArray=[]
 modPcArray=[]
 scnFtArray=[]
@@ -47,9 +46,18 @@ def fromNumpy(dat):
   pc.points=o3d.Vector3dVector(d)
   return pc
 
+param={
+  'radius_normal':2.0,
+  'radius_feature':5.0,
+  'maxnn_normal':30,
+  'maxnn_feature':100,
+  'distance_threshold':1.5,
+  'icp_threshold':5.0
+}
 #########public methods
-def learn(datArray):
+def learn(datArray,prm):
   global modFtArray,modPcArray
+  param.update(prm)
   modFtArray=[]
   modPcArray=[]
   for dat in datArray:
@@ -68,14 +76,16 @@ def solve(datArray,prm):
     scnPcArray.append(pc)
     scnFtArray.append(feature_(pc))
   res,pcs=match_()
-  return [res.transformation],[res.fitness]
+  return {"transform":[res.transformation],"fitness":[res.fitness]}
 
 if __name__ == '__main__':
   print "Prepare model"
   pcd=o3d.read_point_cloud("model.ply")
-  learn([toNumpy(pcd)])
+  learn([toNumpy(pcd)],{})
   pcd=o3d.read_point_cloud("sample.ply")
-  Tmat,score=solve([toNumpy(pcd)],{})
+  result=solve([toNumpy(pcd)],{})
+  Tmat=result["transform"]
+  score=result["fitness"]
   print "feature matching result",Tmat[0],score[0]
 
   P=copy.deepcopy(toNumpy(modPcArray[0]))

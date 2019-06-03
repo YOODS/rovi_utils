@@ -80,7 +80,7 @@ void subn(const rovi::Floats& buf){
   pubpc();
 }
 
-void param(const std_msgs::String& buf){
+void update(const std_msgs::String& buf){
   std::string s=buf.data;
   std::replace(s.begin(),s.end(),'\'','\"');
   std::cerr<<"float2pc::param "<<s<<std::endl;
@@ -124,7 +124,7 @@ int main(int argc, char **argv){
   ros::NodeHandle n;
   nh=&n;
   ros::Subscriber s0=n.subscribe("floats",1,subn);
-  ros::Subscriber s1=n.subscribe("param",1,param);
+  ros::Subscriber s1=n.subscribe("update",1,update);
   ros::Subscriber s2=n.subscribe("clear",1,clear);
   ros::Publisher p0=n.advertise<sensor_msgs::PointCloud>("pc",1);
   pub=&p0;
