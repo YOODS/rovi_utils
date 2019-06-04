@@ -19,12 +19,12 @@ if __name__ == "__main__":
   arg=sys.argv
   arg.pop(0)
   for n,tp in enumerate(arg):
-    rospy.Subscriber(tp,String,cb_sub,n)
-    print "mes",tp
+    if ":=" not in tp:
+      rospy.Subscriber(tp,String,cb_sub,n)
 
   root=tk.Tk()
   text=tk.Text(root,width=100,height=10)
-  text.insert(tk.INSERT,"-----------------messages---------------")
+  text.insert(tk.INSERT,"-----------------------------messages--------------------------------")
   text.insert(tk.END,"\n")
   text.pack()
   root.update()
@@ -33,7 +33,7 @@ if __name__ == "__main__":
     if len(buffer)>0:
       while len(buffer)>0:
         s=buffer.pop(0)
-        text.insert("2.0",s+"\n")
+        text.insert("1.0",s+"\n")
       text.pack()
     root.update()
     r.sleep()

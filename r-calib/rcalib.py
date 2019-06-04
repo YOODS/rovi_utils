@@ -9,6 +9,7 @@ import tf
 import tf2_ros
 import time
 from std_msgs.msg import Bool
+from std_msgs.msg import String
 from std_msgs.msg import Header
 from std_msgs.msg import Float64
 from sensor_msgs.msg import Image
@@ -21,16 +22,16 @@ import tflib
 def cb_X0(f):
   global cTsAry,bTmAry
   print "cbX0"
+  pb_msg.publish("rcalib::clear")
   cTsAry=TransformArray()
   bTmAry=TransformArray()
 
 def cb_X1(f):
   global cTsAry,bTmAry
-  print "cbX1"
   try:
     cTs=tfBuffer.lookup_transform('camera', 'gridboard', rospy.Time())
   except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
-    print "tf2 gridboard lookup exception"
+    pb_msg.publish("rcalib::gridboard lookup failed")
     done=Bool(); done.data=False; pb_Y1.publish(done)
     return
   try:
@@ -39,10 +40,12 @@ def cb_X1(f):
     else:
       bTm=tfBuffer.lookup_transform('world', 'mount', rospy.Time())  #The camera mount may be attached on some link
   except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
-    print "tf2 flange lookup exception"
+    pb_msg.publish("rcalib::robot lookup failed")
     done=Bool(); done.data=False; pb_Y1.publish(done)
     return
-  print "bTm",mount,bTm.transform
+  tf=bTm.transform
+  print "bTm",mount,tf
+  pb_msg.publish("rcalib::robot["+str(len(cTsAry.transforms))+"]=("+"%.4f"%tf.translation.x+", "+"%.4f"%tf.translation.y+", "+"%.4f"%tf.translation.z+",    "+"%.4f"%tf.rotation.x+", "+"%.4f"%tf.rotation.y+", "+"%.4f"%tf.rotation.z+", "+"%.4f"%tf.rotation.w+")")
   cTsAry.transforms.append(cTs.transform)
   bTmAry.transforms.append(bTm.transform)
   done=Bool(); done.data=True; pb_Y1.publish(done)
@@ -94,12 +97,14 @@ def call_visp():
     creset=rospy.ServiceProxy('/reset',reset)
   except rospy.ServiceException, e:
     print 'Visp reset failed:'+e
+    pb_msg.publish("rcalib::visp reset failed")
     return
   calibrator=None
   try:  #solving as fixed camera
     calibrator=rospy.ServiceProxy('/compute_effector_camera_quick',compute_effector_camera_quick)
   except rospy.ServiceException, e:
     print 'Visp call failed:'+e
+    pb_msg.publish("rcalib::visp call failed")
     return
   creset(resetRequest())
   req=compute_effector_camera_quickRequest()
@@ -116,10 +121,12 @@ def call_visp():
   try:
     res=calibrator(req)
     print res.effector_camera
-    set_param_tf('/tf_config/transform',res.effector_camera)
+    set_param_tf('/tf_config/mount/transform',res.effector_camera)
     mTc=tflib.toRT(res.effector_camera)
+    pb_msg.publish("rcalib::visp solver success")
   except rospy.ServiceException, e:
     print 'Visp call failed:'+e
+    pb_msg.publish("rcalib::visp solver failed")
   return
 
 def cb_X2(f):
@@ -149,12 +156,15 @@ def cb_X3(f):
 ###############################################################
 rospy.init_node('rcalib',anonymous=True)
 
+pb_msg=rospy.Publisher('/message',String,queue_size=1)
 pb_err=rospy.Publisher('~error',Float64,queue_size=1)
-pb_Y1=rospy.Publisher('~Y1',Bool,queue_size=1)    #X1 done
+pb_Y0=rospy.Publisher('~cleared',Bool,queue_size=1)    #X0 done
+pb_Y1=rospy.Publisher('~captured',Bool,queue_size=1)    #X1 done
+pb_Y1=rospy.Publisher('~solved',Bool,queue_size=1)    #X2 done
 
-rospy.Subscriber('~X0',Bool,cb_X0)
-rospy.Subscriber('~X1',Bool,cb_X1)
-rospy.Subscriber('~X2',Bool,cb_X2)
+rospy.Subscriber('~clear',Bool,cb_X0)
+rospy.Subscriber('~capture',Bool,cb_X1)
+rospy.Subscriber('~solve',Bool,cb_X2)
 rospy.Subscriber('~X3',Bool,cb_X3)
 
 cb_X0(Bool())

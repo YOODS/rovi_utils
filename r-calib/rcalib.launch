@@ -1,12 +1,24 @@
 <launch>
-  <rosparam command="load" file="$(find rovi_utils)/r-calib/$(arg gridboard).yaml" />
+  <include file="$(find rovi_utils)/tf_config/tf_config.launch" />
+
+  <!--   Main body   -->
+  <rosparam command="load" file="$(find rovi_utils)/r-calib/param.yaml" />
   <param name="/rovi/live/camera/SoftwareTriggerRate" type="double" value="4" />
   <param name="/rovi/pshift_genpc/projector/Mode" type="int" value="1" />
-  <node pkg="rovi" type="grid_node" name="grid_node" args="/rovi/left/remap/Kn" output="screen">
+  <node pkg="rovi" type="grid_node" name="grid_node" args="/rovi/left/remap/Kn">
     <remap from="gridboard/image_in" to="/rovi/left/image_rect" />
   </node>
   <node pkg="visp_hand2eye_calibration" type="visp_hand2eye_calibration_calibrator" name="calibrator" />
-  <node pkg="image_view" type="image_view" name="gridboard_image" args="image:=/gridboard/image_out" />
-  <node pkg="rovi_utils" type="rcalib.py" name="rcalib" output="screen" />
-  <node pkg="rqt_param_manager" type="rqt_param_manager" name="rcalib_gui" args="conf:=$(find rovi_utils)/r-calib/rcalib.ui dump:=$(find rovi_utils)/tf_config.yaml" />
+  <node pkg="rovi_utils" type="rcalib.py" name="rcalib" output="screen">
+    <remap from="~clear" to="/request/clear" />
+    <remap from="~capture" to="/request/capture" />
+    <remap from="~solve" to="/request/solve" />
+    <remap from="~cleared" to="/response/cleared" />
+    <remap from="~captured" to="/response/captured" />
+    <remap from="~solved" to="/response/solved" />
+  </node>
+  <!--   User interface  -->
+  <node pkg="image_view" type="image_view" name="" args="image:=/gridboard/image_out" />
+  <node pkg="rqt_param_manager" type="rqt_param_manager" name="" args="conf:=$(find rovi_utils)/r-calib/rcalib.ui dump:=$(find rovi_utils)/r-calib/param.yaml" />
+  <node pkg="rovi_utils" type="tk_message.py" name="" args="/message /rovi/error" />
 </launch>

@@ -1,11 +1,11 @@
 gridboard:
-  n_circles_x: 20
-  n_circles_y: 27
-  origin_x: 10
-  origin_y: 13
-  unitleng: 20.0
+  n_circles_x: 12
+  n_circles_y: 16
+  origin_x: 6
+  origin_y: 8
+  unitleng: 0.01
   distance_between_circles: 1.2
-  n_circles_minimum: 9.0
+  n_circles_minimum: 9
   min_rate: 0.25
   max_rate: 2.0
   fitscore: 0.95
