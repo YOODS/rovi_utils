@@ -9,11 +9,11 @@
   </node>
   <node ns="/crop/out" pkg="rovi" type="floats2pc" name="floats2pc" args="/camera" />
   <node ns="/crop/raw" pkg="rovi" type="floats2pc" name="floats2pc" args="/camera" />
-  <node pkg="rqt_param_manager" type="rqt_param_manager" name="cropper_gui" args="conf:=$(find rovi_utils)/cropper/example.ui dump:=$(find rovi_utils)/cropper/param.yaml" />
-  <node pkg="rovi" type="param_watch.js" name="crop_param" args="/crop /crop/param" />
+  <node pkg="rqt_param_manager" type="rqt_param_manager" name="" args="conf:=$(find rovi_utils)/cropper/example.ui dump:=$(find rovi_utils)/cropper/param.yaml" />
+  <node pkg="rovi" type="param_watch.js" name="" args="/crop /crop/update" />
   <node pkg="rviz" type="rviz" name="rviz" args="-d $(find rovi_utils)/cropper/example.rviz" />
 <!-- PLY file saver example -->
-  <node ns="/filer" pkg="rovi_cropper" type="filer.py" name="filer" args="wd:=$(find rovi_utils)/cropper" output="screen">
-    <remap from="input/floats" to="/crop/out/floats" />
+  <node pkg="rovi_cropper" type="filer.py" name="filer" args="wd:=$(find rovi_utils)/cropper" output="screen">
+    <remap from="~in/floats" to="/crop/out/floats" />
   </node>
 </launch>

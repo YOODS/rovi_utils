@@ -19,6 +19,14 @@ from visp_hand2eye_calibration.srv import reset,resetRequest,resetResponse,compu
 from visp_hand2eye_calibration.msg import TransformArray
 import tflib
 
+Config={
+  "config_tf":"/config_tf",
+  "camera_frame_id":"camera",
+  "mount_frame_id":"mount",
+  "flange_frame_id":"flange",
+  "board_frame_id":"gridboard"
+}
+
 def cb_X0(f):
   global cTsAry,bTmAry
   print "cbX0"
@@ -29,16 +37,16 @@ def cb_X0(f):
 def cb_X1(f):
   global cTsAry,bTmAry
   try:
-    cTs=tfBuffer.lookup_transform('camera', 'gridboard', rospy.Time())
+    cTs=tfBuffer.lookup_transform(Config["camera_frame_id"], Config["board_frame_id"], rospy.Time())
   except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
     pb_msg.publish("rcalib::gridboard lookup failed")
     done=Bool(); done.data=False; pb_Y1.publish(done)
     return
   try:
-    if mount == "world":
-      bTm=tfBuffer.lookup_transform('world', 'flange', rospy.Time())  #The board may be held on the flange
+    if mount_info["parent_frame_id"] == "world":
+      bTm=tfBuffer.lookup_transform("world",Config["flange_frame_id"], rospy.Time())  #The board may be held on the flange
     else:
-      bTm=tfBuffer.lookup_transform('world', 'mount', rospy.Time())  #The camera mount may be attached on some link
+      bTm=tfBuffer.lookup_transform("world",Config["mount_frame_id"], rospy.Time())  #The camera mount may be attached on some link
   except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
     pb_msg.publish("rcalib::robot lookup failed")
     done=Bool(); done.data=False; pb_Y1.publish(done)
@@ -109,7 +117,7 @@ def call_visp():
   creset(resetRequest())
   req=compute_effector_camera_quickRequest()
   req.camera_object=cTsAry
-  if mount == "world":  #fixed camera
+  if mount_info["parent_frame_id"] == "world":  #fixed camera
     mTbAry=TransformArray()
     for tf in bTmAry.transforms:
       mTbAry.transforms.append(tflib.inv(tf))
@@ -121,7 +129,7 @@ def call_visp():
   try:
     res=calibrator(req)
     print res.effector_camera
-    set_param_tf('/tf_config/mount/transform',res.effector_camera)
+    set_param_tf(Config["config_tf"]+"/"+Config["camera_frame_id"]+"/transform",res.effector_camera)
     mTc=tflib.toRT(res.effector_camera)
     pb_msg.publish("rcalib::visp solver success")
   except rospy.ServiceException, e:
@@ -155,6 +163,11 @@ def cb_X3(f):
 
 ###############################################################
 rospy.init_node('rcalib',anonymous=True)
+try:
+  Config.update(rospy.get_param("~config"))
+except Exception as e:
+  print "get_param exception:",e.args
+print "Config",Config
 
 pb_msg=rospy.Publisher('/message',String,queue_size=1)
 pb_err=rospy.Publisher('~error',Float64,queue_size=1)
@@ -172,10 +185,13 @@ cb_X0(Bool())
 tfBuffer = tf2_ros.Buffer()
 tfListener = tf2_ros.TransformListener(tfBuffer)
 
-mount="world"
-if rospy.has_param("/tf_config/alias/mount"):
-  mount=rospy.get_param("/tf_config/alias/mount")
-print "mount",mount
+config_tf=rospy.get_param(Config["config_tf"])
+camera_info=config_tf[Config["camera_frame_id"]]
+print "camera_info",camera_info
+Config["mount_frame_id"]=camera_info["parent_frame_id"]
+print "mount_frame",Config["mount_frame_id"]
+mount_info=config_tf[Config["mount_frame_id"]]
+print "mount_info",mount_info
 
 try:
   rospy.spin()
