@@ -13,7 +13,7 @@
   <node pkg="rovi" type="param_watch.js" name="" args="/crop /crop/update" />
   <node pkg="rviz" type="rviz" name="rviz" args="-d $(find rovi_utils)/cropper/example.rviz" />
 <!-- PLY file saver example -->
-  <node pkg="rovi_cropper" type="filer.py" name="filer" args="wd:=$(find rovi_utils)/cropper" output="screen">
+  <node pkg="rovi_utils" type="filer.py" name="filer" args="wd:=$(find rovi_utils)/cropper" output="screen">
     <remap from="~in/floats" to="/crop/out/floats" />
   </node>
 </launch>
