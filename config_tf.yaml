@@ -3,12 +3,8 @@ config_tf:
     parent_frame_id: world
   J6:
     parent_frame_id: world
-  flange:
-    parent_frame_id: J6
-  mount:
-    parent_frame_id: J5
   camera:
-    parent_frame_id: mount
+    parent_frame_id: J5
     transform:
       rotation:
         w: 1
@@ -19,3 +15,5 @@ config_tf:
         x: 0
         y: 0
         z: 0
+  flange:
+    parent_frame_id: J6

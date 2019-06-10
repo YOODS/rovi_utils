@@ -49,21 +49,44 @@ def cb_master(event):
 
 def cb_save(msg):
   global Model,tfReg
-#  pc=o3d.PointCloud()
-#  pc.points=o3d.Vector3dVector(d)
-#  print 'save model PC',d.dtype,d.shape
-#  o3d.write_point_cloud(Args["wd"]+"/sample.ply",pc,True,False)
-#  for n,m in enumerate(Config["master_frame_id"]):
-#    src=Config["scene_frame_id"][n]
-#    path=Config["path"]+"/"+m.replace('/','_')+".yaml"
+#save point cloud
+  for n,l in enumerate(Config["lines"]):
+    pc=o3d.PointCloud()
+    m=Scene[n]
+    Model[n]=m
+    pc.points=o3d.Vector3dVector(m)
+    o3d.write_point_cloud(Config["path"]+"/"+l+".ply",pc,True,False)
+    pub_pcs[n].publish(np2F(m))
+  tfReg=[]
+#copy TF scene...->master... and save them
+  for n,s in enumerate(Config["scene_frame_id"]):
+    try:
+      tf=tfBuffer.lookup_transform("world",s,rospy.Time())
+    except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+      pub_msg.publish("searcher::capture::lookup failure world->"+s)
+      tf=TransformStamped()
+      tf.header.stamp=rospy.Time.now()
+      tf.header.frame_id="world"
+      tf.child_frame_id=s
+      tf.transform.rotation.w=1
+    path=Config["path"]+"/"+Config["master_frame_id"][n].replace('/','_')+".yaml"
+    f=open(path,"w")
+    f.write(yaml.dump(tflib.tf2dict(tf.transform)))
+    f.close()
+    tfReg.append(tf)
+  broadcaster.sendTransform(tfReg)
+  solver.learn(Model,Param)
+  pub_msg.publish("searcher::model learning completed")
 
 def cb_load(msg):
   global Model,tfReg
+#load point cloud
   for n,l in enumerate(Config["lines"]):
     pcd=o3d.read_point_cloud(Config["path"]+"/"+l+".ply")
     Model[n]=np.reshape(np.asarray(pcd.points),(-1,3))
   rospy.Timer(rospy.Duration(Config["tf_delay"]),cb_master,oneshot=True)
   tfReg=[]
+#load TF such as master/camera...
   for n,m in enumerate(Config["master_frame_id"]):
     path=Config["path"]+"/"+m.replace('/','_')+".yaml"
     try:
@@ -89,6 +112,7 @@ def cb_load(msg):
 
 def cb_score(event):
   global solveResult
+  ret=Bool();ret.data=True;pub_Y2.publish(ret)
   cb_master(event)
   score=Float32MultiArray()
   for sc in solveResult:
