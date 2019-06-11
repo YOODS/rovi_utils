@@ -12,6 +12,7 @@ from std_msgs.msg import Bool
 from std_msgs.msg import String
 from std_msgs.msg import Header
 from std_msgs.msg import Float64
+from std_msgs.msg import Int32
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Transform
 from geometry_msgs.msg import TransformStamped
@@ -57,6 +58,7 @@ def cb_X1(f):
   cTsAry.transforms.append(cTs.transform)
   bTmAry.transforms.append(bTm.transform)
   done=Bool(); done.data=True; pb_Y1.publish(done)
+  count=Int32(); count.data=len(cTsAry.transforms); pb_count.publish(count)
   return
 
 def save_input(name):
@@ -171,6 +173,7 @@ print "Config",Config
 
 pb_msg=rospy.Publisher('/message',String,queue_size=1)
 pb_err=rospy.Publisher('~error',Float64,queue_size=1)
+pb_count=rospy.Publisher('~count',Int32,queue_size=1)
 pb_Y0=rospy.Publisher('~cleared',Bool,queue_size=1)    #X0 done
 pb_Y1=rospy.Publisher('~captured',Bool,queue_size=1)    #X1 done
 pb_Y1=rospy.Publisher('~solved',Bool,queue_size=1)    #X2 done

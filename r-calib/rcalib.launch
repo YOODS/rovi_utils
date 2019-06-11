@@ -18,9 +18,16 @@
     <remap from="~cleared" to="/response/cleare" />
     <remap from="~captured" to="/response/capture" />
     <remap from="~solved" to="/response/solve" />
+    <remap from="~count" to="/rcalib/count" />
+  </node>
+  <node pkg="rovi_utils" type="rguide.py" name="rguide" output="screen">
+    <remap from="~config" to="/config/rguide" />
+    <remap from="~in/image" to="/gridboard/image_out" />
+    <remap from="~out/image" to="/rguide/image" />
+    <remap from="~count" to="/rcalib/count" />
   </node>
   <!--   User interface  -->
-  <node pkg="image_view" type="image_view" name="" args="image:=/gridboard/image_out" />
+  <node pkg="image_view" type="image_view" name="" args="image:=/rguide/image" />
   <node pkg="rqt_param_manager" type="rqt_param_manager" name="" args="conf:=$(find rovi_utils)/r-calib/rcalib.ui dump:=$(find rovi_utils)/r-calib/param.yaml" />
   <node pkg="rovi_utils" type="tk_message.py" name="" args="/message /rovi/error" />
 </launch>
