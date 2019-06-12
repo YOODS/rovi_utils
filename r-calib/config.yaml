@@ -5,7 +5,3 @@ config:
     flange_frame_id: flange
   rguide:
     K: /rovi/left/remap/K
-    width: 150
-    height: 100
-    distance: [400,500,600]
-    rpy: [0,0,0, 40,0,0, 0,40,-10, -40,0,0, 0,-40,10]

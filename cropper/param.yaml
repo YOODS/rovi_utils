@@ -1,4 +1,18 @@
 crop:
-  cropR: 201
-  cropZ: 800
-  mesh: 1.0
+  cropR: 0.2
+  cropZ: 1.0
+  mesh: 0.001
+rovi:
+  live:
+    camera:
+      ExposureTime: 30000
+      Gain: 50
+      GainAnalog: 3
+      SoftwareTriggerRate: 4
+  pshift_genpc:
+    camera:
+      ExposureTime: 8400
+      Gain: 0
+    projector:
+      Intencity: 120
+      Mode: 1

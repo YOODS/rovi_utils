@@ -127,9 +127,13 @@ def cb_setcrop(msg):
 
 def cb_param(msg):
   global Param
-  prm=eval(msg.data)
-  Param.update(prm)
-  print "param",Param
+  prm=Param.copy()
+  try:
+    Param.update(rospy.get_param("~param"))
+  except Exception as e:
+    print "get_param exception:",e.args
+  if prm==Param: return
+  print "Param changed",Param
   crop()
   return
 
@@ -166,7 +170,6 @@ def parse_argv(argv):
       args[key]=tokens[1]
   return args
 
-
 ########################################################
 rospy.init_node("cropper",anonymous=True)
 Config.update(parse_argv(sys.argv))
@@ -181,11 +184,12 @@ except Exception as e:
   print "get_param exception:",e.args
 print "Param",Param
 
+rospy.Timer(rospy.Duration(1),cb_param) #Param update itself
+
 ###Input topics
 rospy.Subscriber("~in/floats",numpy_msg(Floats),cb_ps)
 rospy.Subscriber("~clear",Bool,cb_clear)
 rospy.Subscriber("~capture",Bool,cb_capture)
-rospy.Subscriber("~update",String,cb_param)
 rospy.Subscriber("~setcrop",Bool,cb_setcrop)
 ###Output topics
 pub_crop=rospy.Publisher("~out/floats",numpy_msg(Floats),queue_size=1)

@@ -34,6 +34,7 @@ def cb_X0(f):
   pb_msg.publish("rcalib::clear")
   cTsAry=TransformArray()
   bTmAry=TransformArray()
+  count=Int32(); count.data=len(cTsAry.transforms); pb_count.publish(count)
 
 def cb_X1(f):
   global cTsAry,bTmAry

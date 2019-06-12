@@ -11,14 +11,17 @@ from std_msgs.msg import Int32
 from cv_bridge import CvBridge, CvBridgeError
 
 Config={
+  "K":"/rovi/left/remap/K"
+}
+Param={
   "distance":[450,630],
   "width":150,
   "height":100,
   "rpy":[0,0,0, 40,0,0, 0,40,-10, -40,0,0, 0,-40,10],
-  "K":"/rovi/left/remap/K"
 }
-K=[ 1.9676931867772034e+03, 0., 6.0183207280059480e+02, 0.,
-  1.9676931867772034e+03, 4.6960106895945921e+02, 0., 0., 1. ]
+K=[850, 0.0, 250,
+  0.0, 850, 220,
+  0.0, 0.0, 1.0]
 
 gCount=0
 def cb_count(msg):
@@ -26,11 +29,15 @@ def cb_count(msg):
   gCount=msg.data
 
 def putguide(img,i):
-  w=Config["width"]/2
-  h=Config["height"]/2
+  try:
+    Param.update(rospy.get_param("~param"))
+  except Exception as e:
+    print "get_param exception:",e.args
+  w=Param["width"]/2
+  h=Param["height"]/2
   rect=np.asarray([[-w,-h,0],[w,-h,0],[w,h,0],[-w,h,0]])
-  dist=Config["distance"]
-  pose=np.asarray(Config["rpy"]).reshape((-1,3))*np.pi/180
+  dist=Param["distance"]
+  pose=np.asarray(Param["rpy"]).reshape((-1,3))*np.pi/180
   d=dist[int(i/len(pose))]
   p=pose[i%len(pose)]
   rt=tf.transformations.euler_matrix(p[0],p[1],p[2],axes="rxyz")
@@ -56,7 +63,6 @@ try:
   Config.update(rospy.get_param("~config"))
 except Exception as e:
   print "get_param exception:",e.args
-print "Config",Config
 try:
   K=rospy.get_param(Config["K"])
 except Exception as e:

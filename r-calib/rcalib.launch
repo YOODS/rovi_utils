@@ -8,6 +8,7 @@
   <param name="/rovi/pshift_genpc/projector/Mode" type="int" value="1" />
   <node pkg="rovi" type="grid_node" name="grid_node" args="/rovi/left/remap/Kn">
     <remap from="gridboard/image_in" to="/rovi/left/image_rect" />
+    <remap from="gridboard/reload" to="/reload/gridboard" />
   </node>
   <node pkg="visp_hand2eye_calibration" type="visp_hand2eye_calibration_calibrator" name="calibrator" />
   <node pkg="rovi_utils" type="rcalib.py" name="rcalib" output="screen">
@@ -22,6 +23,7 @@
   </node>
   <node pkg="rovi_utils" type="rguide.py" name="rguide" output="screen">
     <remap from="~config" to="/config/rguide" />
+    <remap from="~param" to="/rguide" />
     <remap from="~in/image" to="/gridboard/image_out" />
     <remap from="~out/image" to="/rguide/image" />
     <remap from="~count" to="/rcalib/count" />
