@@ -1,0 +1,7 @@
+config:
+  rcalib:
+    board_frame_id: gridboard
+    camera_frame_id: camera
+    flange_frame_id: flange
+  rguide:
+    K: /rovi/left/remap/K

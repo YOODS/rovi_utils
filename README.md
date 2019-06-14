@@ -2,7 +2,7 @@
 
 ## Contents
 
-- tf_config/...  
+- config_tf/...  
 カメラの構成をTFに設定する
 - r-calib/...  
 カメラとロボットのキャリブレーション
@@ -25,7 +25,7 @@ git clone https://github.com/dropbox/json11
 ## カメラの初期設定  
 カメラを設置したときは、以下の手順にて初期設定が必要です。
 
-1. tf_config  
+1. config_tf  
 構成の設定
 2. r-calib  
 カメラとアームのキャリブレーション

@@ -1,19 +1,24 @@
 <launch>
+  <!--   TF configuation server (needed for every application)   -->
+  <rosparam command="load" file="$(find rovi_utils)/config_tf.yaml" />
+  <node pkg="rovi_utils" type="config_tf.py" name="config_tf" />
+
+  <!--   PointCloud publisher from file. For testing   -->
+  <rosparam command="load" file="$(find rovi_utils)/cropper/config.yaml" />
   <rosparam command="load" file="$(find rovi_utils)/cropper/param.yaml" />
-  <param name="/rovi/pshift_genpc/projector/Mode" type="int" value="1" />
-  <param name="/rovi/live/camera/SoftwareTriggerRate" type="int" value="4" />
-  <node pkg="rovi_utils" type="cropper.py" name="crop" args="relay:=/rovi/X1" output="screen">
+  <node pkg="rovi_utils" type="cropper.py" name="crop" output="screen">
     <remap from="~in/floats" to="/rovi/ps_floats" />
-    <remap from="~param" to="/crop/param" />
-    <remap from="~config" to="/crop_config" />
+    <remap from="~param" to="/crop" />
+    <remap from="~config" to="/config/crop" />
+    <remap from="~out/floats" to="/crop/out/floats" />
+    <remap from="~raw/floats" to="/crop/raw/floats" />
   </node>
-  <node ns="/crop/out" pkg="rovi" type="floats2pc" name="floats2pc" args="/camera" />
-  <node ns="/crop/raw" pkg="rovi" type="floats2pc" name="floats2pc" args="/camera" />
-  <node pkg="rqt_param_manager" type="rqt_param_manager" name="cropper_gui" args="conf:=$(find rovi_utils)/cropper/example.ui dump:=$(find rovi_utils)/cropper/param.yaml" />
-  <node pkg="rovi" type="param_watch.js" name="crop_param" args="/crop /crop/param" />
-  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find rovi_utils)/cropper/example.rviz" />
+  <node ns="/crop/out" pkg="rovi" type="floats2pc" name="" args="/camera" />
+  <node ns="/crop/raw" pkg="rovi" type="floats2pc" name="" args="/camera" />
+  <node pkg="rqt_param_manager" type="rqt_param_manager" name="" args="conf:=$(find rovi_utils)/cropper/cropper.ui dump:=$(find rovi_utils)/cropper/param.yaml" />
+  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find rovi_utils)/cropper/cropper.rviz" />
 <!-- PLY file saver example -->
-  <node ns="/filer" pkg="rovi_cropper" type="filer.py" name="filer" args="wd:=$(find rovi_utils)/cropper" output="screen">
-    <remap from="input/floats" to="/crop/out/floats" />
+  <node pkg="rovi_utils" type="filer.py" name="filer" args="wd:=$(find rovi_utils)/cropper" output="screen">
+    <remap from="~in/floats" to="/crop/out/floats" />
   </node>
 </launch>

@@ -1,0 +1,13 @@
+config:
+  crop:
+    capture_frame_id: "camera"
+    source_frame_id: "camera/capture"
+    frame_id: "camera/capture0"
+    relay: "/rovi/X1"
+rovi:
+  pshift_genpc:
+    projector:
+      Mode: 1
+  live:
+    camera:
+      SoftwareTriggerRate: 4

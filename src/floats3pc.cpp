@@ -83,12 +83,10 @@ void subn(const rovi::Floats& buf){
 void update(const std_msgs::String& buf){
   std::string s=buf.data;
   std::replace(s.begin(),s.end(),'\'','\"');
-  std::cerr<<"float2pc::param "<<s<<std::endl;
   std::string err;
   auto dict=json11::Json::parse(s, err);
   auto frm=dict["frame_id"].string_value();
   auto ifrm=dict["input_frame_id"].string_value();
-  std::cerr<<"float2pc::parse "<<err<<" "<<frm<<" "<<ifrm<<std::endl;
   int cf=0;
   if(frm.size()>0){
     if(Param["frame_id"]!=frm){
@@ -128,10 +126,6 @@ int main(int argc, char **argv){
   ros::Subscriber s2=n.subscribe("clear",1,clear);
   ros::Publisher p0=n.advertise<sensor_msgs::PointCloud>("pc",1);
   pub=&p0;
-//  tf2_ros::Buffer tfBuffer_;
-//  tf2_ros::TransformListener tfListener_(tfBuffer_);
-//  tfBuffer=&tfBuffer_;
-//  tfListener=&tfListener_;
   tfBuffer=new tf2_ros::Buffer;
   tfListener=new tf2_ros::TransformListener(*tfBuffer);
 
