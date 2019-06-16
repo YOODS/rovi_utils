@@ -25,9 +25,9 @@ rguide:
 rovi:
   live:
     camera:
-      ExposureTime: '30000'
-      Gain: '50'
-      SoftwareTriggerRate: 4.0
+      ExposureTime: 30000
+      Gain: 50
+      SoftwareTriggerRate: 4
   pshift_genpc:
     projector:
       Mode: 1

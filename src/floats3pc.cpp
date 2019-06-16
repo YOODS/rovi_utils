@@ -103,15 +103,6 @@ void update(const std_msgs::String& buf){
   if(cf) pubpc();
 }
 
-void clear(const std_msgs::Bool&){
-  if(tfBuffer!=NULL){
-    delete tfBuffer;
-    delete tfListener;
-  }
-  tfBuffer=new tf2_ros::Buffer;  
-  tfListener=new tf2_ros::TransformListener(*tfBuffer);
-}
-
 int main(int argc, char **argv){
   std::cerr<<"argc "<<argc<<std::endl;
   if (argc >= 6){
@@ -123,7 +114,6 @@ int main(int argc, char **argv){
   nh=&n;
   ros::Subscriber s0=n.subscribe("floats",1,subn);
   ros::Subscriber s1=n.subscribe("update",1,update);
-  ros::Subscriber s2=n.subscribe("clear",1,clear);
   ros::Publisher p0=n.advertise<sensor_msgs::PointCloud>("pc",1);
   pub=&p0;
   tfBuffer=new tf2_ros::Buffer;

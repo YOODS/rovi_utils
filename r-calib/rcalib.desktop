@@ -3,7 +3,7 @@ Version=1.0
 Type=Application
 Name=RoVI(SXGA)
 Comment=
-Exec=rovirun.sh roslaunch rovi_utils rcalib.launch gridboard:=10L 
+Exec=rovirun.sh roslaunch rovi_utils rcalib.launch
 Icon=
 Terminal=true
 StartupNotify=false

@@ -45,7 +45,7 @@ def cb_X1(f):
     done=Bool(); done.data=False; pb_Y1.publish(done)
     return
   try:
-    if mount_info["parent_frame_id"] == "world":
+    if Config["mount_frame_id"] == "world":
       bTm=tfBuffer.lookup_transform("world",Config["flange_frame_id"], rospy.Time())  #The board may be held on the flange
     else:
       bTm=tfBuffer.lookup_transform("world",Config["mount_frame_id"], rospy.Time())  #The camera mount may be attached on some link
@@ -54,7 +54,6 @@ def cb_X1(f):
     done=Bool(); done.data=False; pb_Y1.publish(done)
     return
   tf=bTm.transform
-  print "bTm",mount,tf
   pb_msg.publish("rcalib::robot["+str(len(cTsAry.transforms))+"]=("+"%.4f"%tf.translation.x+", "+"%.4f"%tf.translation.y+", "+"%.4f"%tf.translation.z+",    "+"%.4f"%tf.rotation.x+", "+"%.4f"%tf.rotation.y+", "+"%.4f"%tf.rotation.z+", "+"%.4f"%tf.rotation.w+")")
   cTsAry.transforms.append(cTs.transform)
   bTmAry.transforms.append(bTm.transform)
@@ -77,7 +76,7 @@ def save_result(name):
   Tcsv=np.array([]).reshape((-1,7))
   for M,S in zip(bTmAry.transforms,cTsAry.transforms):
     cTs=tflib.toRT(S)
-    if mount == "world":
+    if Config["mount_frame_id"]=="world":
       mTb=tflib.toRT(M).I
       xTs=tflib.fromRTtoVec(np.dot(np.dot(mTb,mTc),cTs))
     else:
@@ -102,7 +101,6 @@ def set_param_tf(name,tf):
 
 def call_visp():
   global cTsAry,bTmAry,mTc
-  print "visp",mount
   creset=None
   try:
     creset=rospy.ServiceProxy('/reset',reset)
@@ -120,7 +118,7 @@ def call_visp():
   creset(resetRequest())
   req=compute_effector_camera_quickRequest()
   req.camera_object=cTsAry
-  if mount_info["parent_frame_id"] == "world":  #fixed camera
+  if Config["mount_frame_id"] == "world":  #fixed camera
     mTbAry=TransformArray()
     for tf in bTmAry.transforms:
       mTbAry.transforms.append(tflib.inv(tf))
@@ -194,8 +192,6 @@ camera_info=config_tf[Config["camera_frame_id"]]
 print "camera_info",camera_info
 Config["mount_frame_id"]=camera_info["parent_frame_id"]
 print "mount_frame",Config["mount_frame_id"]
-mount_info=config_tf[Config["mount_frame_id"]]
-print "mount_info",mount_info
 
 try:
   rospy.spin()

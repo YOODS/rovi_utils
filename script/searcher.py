@@ -45,12 +45,13 @@ def np2F(d):  #numpy to Floats
 
 def cb_master(event):
   for n,l in enumerate(Config["lines"]):
-    pub_pcs[n].publish(np2F(Model[n]))
+    if Model[n] is not None: pub_pcs[n].publish(np2F(Model[n]))
 
 def cb_save(msg):
   global Model,tfReg
 #save point cloud
   for n,l in enumerate(Config["lines"]):
+    if Scene[n] is None: continue
     pc=o3d.PointCloud()
     m=Scene[n]
     Model[n]=m
@@ -125,7 +126,7 @@ def cb_score(event):
 #  score.data_offset=0
 
 def cb_solve(msg):
-  global solveResult
+  global solveResult,tfSolve
   if [x for x in Scene if x is None]:
     pub_msg.publish("searcher::short scene data")
     ret=Bool();ret.data=False;pub_Y2.publish(ret)
@@ -142,9 +143,10 @@ def cb_solve(msg):
     tf.child_frame_id="solve"+str(n)
     tf.transform=tflib.fromRT(rt)
     tfSolve.append(tf)
-  tfSolve.extend(tfReg)
-  broadcaster.sendTransform(tfSolve)
-  solveResult.pop("transform")
+  tfAll=copy.copy(tfReg)
+  tfAll.extend(tfSolve)
+  broadcaster.sendTransform(tfAll)
+  solveResult.pop("transform")   #to make cb_score publish other member but for "transform"
   rospy.Timer(rospy.Duration(Config["tf_delay"]),cb_score,oneshot=True)
 
 def cb_ps(msg,n):
@@ -153,11 +155,27 @@ def cb_ps(msg,n):
   Scene[n]=pc
   print "cb_ps",pc.shape
 
+def cb_tfreset(event):
+  global tfSolve
+  tfSolve=[]
+  broadcaster.sendTransform(tfReg)
+
 def cb_clear(msg):
-  global Scene
+  global Scene,tfSolve
   for n,l in enumerate(Config["lines"]):
     Scene[n]=None
-  broadcaster.sendTransform([])
+  tfAll=copy.copy(tfReg)
+  for tf in tfSolve:
+    tf.transform.translation.x=0
+    tf.transform.translation.y=0
+    tf.transform.translation.z=0
+    tf.transform.rotation.x=0
+    tf.transform.rotation.y=0
+    tf.transform.rotation.z=0
+    tf.transform.rotation.w=1
+    tfAll.append(tf)
+  broadcaster.sendTransform(tfAll)
+  rospy.Timer(rospy.Duration(0.5),cb_tfreset,oneshot=True)
   rospy.Timer(rospy.Duration(1),cb_master,oneshot=True)
 
 def parse_argv(argv):
@@ -213,6 +231,7 @@ broadcaster=tf2_ros.StaticTransformBroadcaster()
 Scene=[None]*len(Config["lines"])
 Model=[None]*len(Config["lines"])
 tfReg=[]
+tfSolve=[]
 
 try:
   rospy.spin()

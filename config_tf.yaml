@@ -1,19 +1,15 @@
 config_tf:
-  J5:
-    parent_frame_id: world
-  J6:
-    parent_frame_id: J5
   camera:
-    parent_frame_id: J5
+    parent_frame_id: wrist_2_link
     transform:
       rotation:
-        w: 1
-        x: 0
-        y: 0
-        z: 0
+        w: 0.7513579540044784
+        x: -0.6596878551971648
+        y: -0.014307240679549697
+        z: -0.008274147914212989
       translation:
-        x: 0
-        y: 0
-        z: 0
+        x: -0.04557298829461265
+        y: 0.01064844750283521
+        z: 0.14001678512944013
   flange:
-    parent_frame_id: J6
+    parent_frame_id: wrist_3_link
