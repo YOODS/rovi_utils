@@ -175,8 +175,8 @@ def cb_clear(msg):
     tf.transform.rotation.w=1
     tfAll.append(tf)
   broadcaster.sendTransform(tfAll)
-  rospy.Timer(rospy.Duration(0.5),cb_tfreset,oneshot=True)
-  rospy.Timer(rospy.Duration(1),cb_master,oneshot=True)
+  rospy.Timer(rospy.Duration(0.1),cb_tfreset,oneshot=True)
+  rospy.Timer(rospy.Duration(0.2),cb_master,oneshot=True)
 
 def parse_argv(argv):
   args={}

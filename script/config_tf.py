@@ -19,7 +19,7 @@ trArray=[]
 def cb_reload(f):
   global trArray
   conf=rospy.get_param("~")
-  print "config_tf",conf
+  print "config_tf::reload",conf
   trArray=[]
   for name in conf:
     attr=conf[name]
@@ -40,6 +40,7 @@ def cb_update(t):
       if tr.child_frame_id==t.child_frame_id:
         tr.header.stamp=t.header.stamp
         tr.transform=t.transform
+        print "config_tf::update",t
   broadcaster.sendTransform(trArray)
 
 ###############################################################

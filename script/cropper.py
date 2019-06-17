@@ -106,6 +106,7 @@ def cb_ps(msg): #callback of ps_floats
   srcArray.append(pc)
   raw()
   crop()
+  f=Bool();f.data=True;pub_capture.publish(f)
   return
 
 def cb_setcrop(msg):
@@ -144,6 +145,7 @@ def cb_clear(msg):
   broadcaster.sendTransform(tfArray)
   raw()
   crop()
+  f=Bool();f.data=True;pub_clear.publish(f)
 
 def cb_capture(msg):
   global tfArray
