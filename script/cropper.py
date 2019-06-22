@@ -142,7 +142,15 @@ def cb_clear(msg):
   global srcArray,tfArray
   srcArray=[]
   tfArray=[]
-  broadcaster.sendTransform(tfArray)
+  keep=Config["capture_frame_id"]
+  try:
+    keeptf=tfBuffer.lookup_transform("world",keep,rospy.Time())
+    keeptf.header.stamp=rospy.Time.now()
+    keeptf.header.frame_id="world"
+    keeptf.child_frame_id=keep+"/capture0"
+    broadcaster.sendTransform([keeptf])
+  except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+    pub_msg.publish("cropper::clear::lookup failure world->"+keep)
   raw()
   crop()
   f=Bool();f.data=True;pub_clear.publish(f)
@@ -205,8 +213,8 @@ pub_msg=rospy.Publisher("/message",String,queue_size=1)
 tfBuffer=tf2_ros.Buffer()
 listener=tf2_ros.TransformListener(tfBuffer)
 broadcaster=tf2_ros.StaticTransformBroadcaster()
-tfArray=[]
-srcArray=[]
+rospy.sleep(1)
+cb_clear(Bool())
 
 try:
   rospy.spin()

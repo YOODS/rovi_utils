@@ -27,7 +27,7 @@ from scipy import optimize
 Param={'radius_normal':2.0,'radius_feature':5.0,'maxnn_normal':30,'maxnn_feature':100,'distance_threshold':1.5,'icp_threshold':5.0}
 Config={
   "path":"recipe",
-  "lines":["surface"],
+  "scenes":["surface"],
   "solver":"o3d_solver",
   "scene_frame_id":["camera/capture0"],
   "master_frame_id":["camera/master0"],
@@ -44,13 +44,13 @@ def np2F(d):  #numpy to Floats
   return f
 
 def cb_master(event):
-  for n,l in enumerate(Config["lines"]):
+  for n,l in enumerate(Config["scenes"]):
     if Model[n] is not None: pub_pcs[n].publish(np2F(Model[n]))
 
 def cb_save(msg):
   global Model,tfReg
 #save point cloud
-  for n,l in enumerate(Config["lines"]):
+  for n,l in enumerate(Config["scenes"]):
     if Scene[n] is None: continue
     pc=o3d.PointCloud()
     m=Scene[n]
@@ -82,7 +82,7 @@ def cb_save(msg):
 def cb_load(msg):
   global Model,tfReg
 #load point cloud
-  for n,l in enumerate(Config["lines"]):
+  for n,l in enumerate(Config["scenes"]):
     pcd=o3d.read_point_cloud(Config["path"]+"/"+l+".ply")
     Model[n]=np.reshape(np.asarray(pcd.points),(-1,3))
   rospy.Timer(rospy.Duration(Config["tf_delay"]),cb_master,oneshot=True)
@@ -162,13 +162,13 @@ def cb_tfreset(event):
 
 def cb_clear(msg):
   global Scene,tfSolve
-  for n,l in enumerate(Config["lines"]):
+  for n,l in enumerate(Config["scenes"]):
     Scene[n]=None
   tfAll=copy.copy(tfReg)
   for tf in tfSolve:
     tf.transform.translation.x=0
     tf.transform.translation.y=0
-    tf.transform.translation.z=0
+    tf.transform.translation.z=1000000
     tf.transform.rotation.x=0
     tf.transform.rotation.y=0
     tf.transform.rotation.z=0
@@ -186,7 +186,6 @@ def parse_argv(argv):
       key = tokens[0]
       args[key] = tokens[1]
   return args
-
 
 ########################################################
 
@@ -207,11 +206,8 @@ print "Param",Param
 exec("import "+Config["solver"]+" as solver")
 
 ###I/O
-if type(Config["lines"]) is str:
-  a=eval(Config["lines"])
-  print "lines",a
 pub_pcs=[]
-for n,c in enumerate(Config["lines"]):
+for n,c in enumerate(Config["scenes"]):
   rospy.Subscriber("~in/"+c+"/floats",numpy_msg(Floats),cb_ps,n)
   pub_pcs.append(rospy.Publisher("~master/"+c+"/floats",numpy_msg(Floats),queue_size=1))
 pub_Y2=rospy.Publisher("~solved",Bool,queue_size=1)
@@ -228,8 +224,8 @@ listener=tf2_ros.TransformListener(tfBuffer)
 broadcaster=tf2_ros.StaticTransformBroadcaster()
 
 ###data
-Scene=[None]*len(Config["lines"])
-Model=[None]*len(Config["lines"])
+Scene=[None]*len(Config["scenes"])
+Model=[None]*len(Config["scenes"])
 tfReg=[]
 tfSolve=[]
 
