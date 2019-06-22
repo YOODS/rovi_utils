@@ -1,0 +1,10 @@
+<launch>
+  <node pkg="rovi_utils" type="recipe_manager.py" name="" args="path:=$(find rovi_utils)/recipe_manager/" output="screen">
+    <remap from="~param" to="/recipe_manager" />
+    <remap from="~load" to="/request/recipe_load" />
+    <remap from="~loaded" to="/request/model_load" />
+    <remap from="~failed" to="/response/recipe_load" />
+  </node>
+  <!--   Message logger  -->
+  <node pkg="rovi_utils" type="tk_message.py" name="" args="/message /rovi/error" />
+</launch>
