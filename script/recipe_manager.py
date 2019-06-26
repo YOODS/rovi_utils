@@ -24,9 +24,9 @@ Param={
 
 def cb_load(msg):
   Param["name"]=msg.data
-  if os.system("ls "+Config["path"]+"recipes/"+Param["name"])==0:
+  if os.system("ls "+Config["path"]+"recipe.d/"+Param["name"])==0:
     rospy.set_param("~param",Param)
-    commands.getoutput("cd "+Config["path"]+"; rm recipe; ln -fs recipes/"+Param["name"]+" recipe")
+    commands.getoutput("cd "+Config["path"]+"; rm recipe; ln -fs recipe.d/"+Param["name"]+" recipe")
     res=Bool(); res.data=True; pub_Y3.publish(res)
     pub_msg.publish("recipe_manager::cb_load "+Param["name"])
   else:
@@ -34,15 +34,15 @@ def cb_load(msg):
     pub_msg.publish("recipe_manager::cb_load failed "+Param["name"])
 
 def cb_open_dir():
-  ret=askopendirname(parent=root,initialdir=Config["path"]+"/recipes",initialfile="")
-  dir=re.sub(r".*/recipes","",ret)
+  ret=askopendirname(parent=root,initialdir=Config["path"]+"/recipe.d",initialfile="")
+  dir=re.sub(r".*/recipe.d","",ret)
   if dir != "":
     msg=String()
     msg.data=dir.replace("/","")
     cb_load(msg)
 
 def cb_save():
-  ret=asksaveasfilename(parent=root,defaultext="",initialdir=Config["path"]+"/recipes",initialfile="",filetypes=[("Directory", "*/")])
+  ret=asksaveasfilename(parent=root,defaultext="",initialdir=Config["path"]+"/recipe.d",initialfile="",filetypes=[("Directory", "*/")])
   if ret != "":
     print "save",ret
 
