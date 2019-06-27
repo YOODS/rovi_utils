@@ -1,0 +1,4 @@
+<launch>
+  <rosparam command="load" file="$(find rovi_utils)/manager/config.yaml" />
+  <node pkg="rovi_utils" type="launch_manager.py" name="" output="screen" />
+</launch>
