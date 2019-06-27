@@ -1,0 +1,26 @@
+cropper:
+  cropR: 0.2
+  cropZ: 0.59
+  mesh: 0.001
+picker:
+  zDiff: 0.3
+  zRot: 3.14
+rovi:
+  live:
+    camera:
+      ExposureTime: 300000
+      Gain: 50
+  pshift_genpc:
+    camera:
+      ExposureTime: 8400
+      Gain: 0
+    projector:
+      Intencity: 255
+      Mode: ''
+searcher:
+  distance_threshold: 1.5
+  icp_threshold: 5.0
+  maxnn_feature: 100
+  maxnn_normal: 30
+  radius_feature: 5.0
+  radius_normal: 2.0
