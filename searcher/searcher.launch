@@ -1,0 +1,50 @@
+<launch>
+  <!-- dummy TF -->
+  <node pkg="tf" type="static_transform_publisher" name="" args="0.01 0 0 0 0 0 1 world camera/capture0 1000" />
+  <!--   PointCloud publisher from file. For testing   -->
+  <node pkg="rovi_utils" type="filer.py" name="filer" args="wd:=$(find rovi_utils)/data">
+    <remap from="~load" to="/request/capture" />
+    <remap from="~out/floats" to="/scene/surface/floats" />
+  </node>
+
+  <!--   Main body of master teach   -->
+  <rosparam command="load" file="$(find rovi_utils)/searcher/config.yaml" />
+  <rosparam command="load" file="$(find rovi_utils)/searcher/recipe/param.yaml" />
+  <node pkg="rovi_utils" type="searcher.py" name="" args="path:=$(find rovi_utils)/searcher/recipe" output="screen">
+    <remap from="~config" to="/config/searcher" />
+    <remap from="~param" to="/searcher" />
+    <remap from="~in/surface/floats" to="/scene/surface/floats" />
+    <remap from="~master/surface/floats" to="/master/surface/floats" />
+    <remap from="~clear" to="/request/clear" />
+    <remap from="~load" to="/request/model_load" />
+    <remap from="~loaded" to="/response/model_load" />
+    <remap from="~save" to="/request/model_save" />
+    <remap from="~solve" to="/request/solve" />
+    <remap from="~solved" to="/response/solve" />
+  </node>
+
+  <!--   PointColuds to show on RViz   -->
+  <node pkg="rviz" type="rviz" name="" args="-d $(find rovi_utils)/searcher/demo.rviz" />
+  <node pkg="rovi" type="floats2pc" name="" args="camera/capture0">
+    <remap from="floats" to="/scene/surface/floats" />
+    <remap from="pc" to="/scene/surface/pc" />
+  </node>
+  <node pkg="rovi" type="floats2pc" name="" args="camera/capture0">
+    <remap from="floats" to="/master/surface/floats" />
+    <remap from="pc" to="/master/surface/pc" />
+  </node>
+  <node pkg="rovi" type="floats2pc" name="" args="camera/capture0/solve0">
+    <remap from="floats" to="/master/surface/floats" />
+    <remap from="pc" to="/master/surface/pc0" />
+  </node>
+  <node pkg="rovi" type="floats2pc" name="" args="camera/capture0/solve1">
+    <remap from="floats" to="/master/surface/floats" />
+    <remap from="pc" to="/master/surface/pc1" />
+  </node>
+
+  <!--   Message logger  -->
+  <node pkg="rovi_utils" type="tk_message.py" name="" args="/message /rovi/error" />
+
+  <!--   UI   -->
+  <node pkg="rqt_param_manager" type="rqt_param_manager" name="" args="conf:=$(find rovi_utils)/searcher/demo.ui" />
+</launch>

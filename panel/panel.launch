@@ -1,0 +1,7 @@
+<launch>
+  <rosparam command="load" file="$(find rovi_utils)/panel/config.yaml" />
+  <node pkg="rovi_utils" type="panel.py" name="" output="screen">
+    <remap from="~param" to="/panel" />
+    <remap from="~config" to="/config/panel" />
+  </node>
+</launch>

@@ -1,24 +1,35 @@
 #!/usr/bin/python
 
-import cv2
 import numpy as np
 import roslib
 import rospy
 import tf
 import tf2_ros
+import copy
 import os
 import sys
+from rovi.msg import Floats
+from rospy.numpy_msg import numpy_msg
 from std_msgs.msg import Bool
 from std_msgs.msg import String
 from geometry_msgs.msg import Transform
 from geometry_msgs.msg import TransformStamped
-from geometry_msgs.msg import PoseStamped
-from nav_msgs.srv import GetPlan
-from nav_msgs.msg import Path
+from geometry_msgs.msg import Pose
+from geometry_msgs.msg import PoseArray
 import tflib
 
-Param={"zDiff":0.3,"zRot":3.14}
-Config={"start_frame_id":"world","goal_frame_id":"solve"}
+Config={"source_frame_id":"camera/master0","goal_frame_id":"solve"}
+Param={
+  "radius":0.02,
+  "threshold":1000
+}
+Path=[]
+Scene=[]
+
+def np2F(d):  #numpy to Floats
+  f=Floats()
+  f.data=np.ravel(d)
+  return f
 
 def getRT(base,ref):
   try:
@@ -30,21 +41,60 @@ def getRT(base,ref):
     RT=None
   return RT
 
-def cb_plan(req):
-  print "start",req.start.header.frame_id
-  print "goal",req.goal.header.frame_id
-  res=Path()
-  res.header.frame_id="good_plan"
-  stamp=PoseStamped()
-  stamp.pose.position.x=1
-  stamp.pose.position.y=2
-  stamp.pose.position.z=3
-  stamp.pose.orientation.w=1
-  res.poses.append(stamp)
-  return res
+def cb_path(msg):
+  global Path
+  Path=[]
+  for p in msg.poses:
+    vec=[p.position.x,p.position.y,p.position.z,p.orientation.x,p.orientation.y,p.orientation.z,p.orientation.w]
+    Path.append(tflib.toRT(tflib.fromVec(vec)))
 
 def cb_solve(msg):
-  pass
+  wTs=getRT("camera/master0","camera/capture0/solve0")
+  print "solve",wTs
+  if wTs is not None:
+    pa=PoseArray()
+    pa.header.stamp=rospy.Time.now()
+    pa.header.frame_id="world"
+    waypnt=[]
+    for wp in Path:
+      wp=np.dot(wTs,wp)
+      vec=tflib.fromRTtoVec(wp)[0]
+      p=Pose()
+      p.position.x=vec[0]
+      p.position.y=vec[1]
+      p.position.z=vec[2]
+      p.orientation.x=vec[3]
+      p.orientation.y=vec[4]
+      p.orientation.z=vec[5]
+      p.orientation.w=vec[6]
+      pa.poses.append(p)
+      waypnt.append(np.asarray(vec[:3]))
+    pub_repath.publish(pa)
+    p0=waypnt.pop(0)
+    print "p0",p0
+    col=[]
+    for p1 in waypnt:
+      l=np.linalg.norm(p1-p0)
+      if l>0:
+        s0=Scene-p0
+        s1=Scene-p1
+        dom0=np.where(np.dot(s0,p1-p0)>0)
+        dom1=np.where(np.dot(s1,p0-p1)>0)
+        dom2=np.where(np.linalg.norm(np.cross(s0,s1)/l,axis=1)<Param["radius"])
+        dom=reduce(np.intersect1d,(dom0,dom1,dom2))
+        print "dom",len(dom)
+        col=np.union1d(col,dom)
+      p0=p1
+    print len(col)
+
+def cb_ps(msg):
+  global Scene
+  wTc=getRT("world","camera/capture0")
+  pc=np.reshape(msg.data,(-1,3))
+  if len(pc)>0:
+    print "pc",len(pc)
+    Scene=np.dot(wTc[:3],np.vstack( (pc.T,np.ones(len(pc))) )).T
+    print "center(world)",np.mean(Scene,axis=0)
 
 def cb_clear(msg):
   pass
@@ -57,7 +107,6 @@ def parse_argv(argv):
       key = tokens[0]
       args[key]=tokens[1]
   return args
-
 
 ########################################################
 rospy.init_node("picker",anonymous=True)
@@ -74,10 +123,11 @@ except Exception as e:
 ###Topics Service
 rospy.Subscriber("~solve",Bool,cb_solve)
 rospy.Subscriber("~clear",Bool,cb_clear)
+rospy.Subscriber("~path",PoseArray,cb_path)
+rospy.Subscriber("~floats",numpy_msg(Floats),cb_ps)
 pub_Y2=rospy.Publisher("~solved",Bool,queue_size=1)
-pub_plan=rospy.Publisher("~plan",Transform,queue_size=1)
+pub_repath=rospy.Publisher("~repath",PoseArray,queue_size=1)
 pub_msg=rospy.Publisher("/message",String,queue_size=1)
-rospy.Service("~solve",GetPlan,cb_plan)
 
 ###Globals
 tfBuffer=tf2_ros.Buffer()

@@ -23,8 +23,9 @@ pip install pip==9.0.3
 
 |name|type|description|
 |:----|:----|:----|
-|register_frame_id|string[]|登録時にファイル保存するフレーム名。別名のマスターフレーム(*master0..n*)が生成される|
-|place_frame_id|string|解析結果フレーム(*solve0..n*)を配置するフレーム名|
+|master_frame_id|string[]|~saveにてファイル保存するフレーム名。Transform情報はその時のscene_frame_idの対応するフレームを参照する。また~loadではファイル保存されたフレームをTFに再現する。|
+|scene_frame_id|string[]|~saveにて保存対象とするフレーム名|
+|solve_frame_id|string|解析を行うフレーム名。解析処理後このフレームに"/solve0..n"を付加したフレームを追加する。|
 
 ### ~  
 ローカルパラメータ領域にSolverパラメータを配します。
