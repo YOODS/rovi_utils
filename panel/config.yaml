@@ -1,6 +1,6 @@
 config:
   panel:
-    geometry: "1100x60+0-0"
+    geometry: "800x80+0-0"
     launch1:
       note: "カメラドライバ"
       package: rovi
