@@ -19,33 +19,52 @@ pip install pip==9.0.3
 ~~~
 
 ## Parameter
-### ~Config
+### ~config
 
 |name|type|description|
 |:----|:----|:----|
+|path|string|レシピフォルダ(recipe/)が存在するパスを与える|
+|scenes|string[]|多重化されたシーン系列の各系列の名称。~in/*/floatsトピックの*に展開される。|
 |master_frame_id|string[]|~saveにてファイル保存するフレーム名。Transform情報はその時のscene_frame_idの対応するフレームを参照する。また~loadではファイル保存されたフレームをTFに再現する。|
 |scene_frame_id|string[]|~saveにて保存対象とするフレーム名|
 |solve_frame_id|string|解析を行うフレーム名。解析処理後このフレームに"/solve0..n"を付加したフレームを追加する。|
 
-### ~  
-ローカルパラメータ領域にSolverパラメータを配します。
+### ~param  
+|name|type|description|
+|:----|:----|:----|
+|scene_frame_id|string[]|~saveにてファイル保存するフレーム名。Transform情報はその時のscene_frame_idの対応するフレームを参照する。また~loadではファイル保存されたフレームをTFに再現する。|
+|scene_frame_id|string[]|~saveにて保存対象とするフレーム名|
+|solve_frame_id|string|解析を行うフレーム名|
 
 ## Topics
 ### To subscribe
 
 |Topic|タイプ|説明|
 |:----|:----|:----|
-|~in/*/floats|Floats|シーン点群。*はlines argumentで与えた点群の系列名|
-|~clear|Bool||
-|~solve|Bool||
-|~load|Bool||
-|~save|Bool||
+|~in/*/floats|Floats|シーン点群。*はscenesパラメータで与えた点群の系列名|
+|~clear|Bool|シーンをクリアする|
+|~solve|Bool|シーンを解析し、マスターに一致する物体を見つける。見つかった場合は、solve_frame_idで与えたフレームに"/solve0..n"を付加したフレームを追加する。|
+|~load|Bool|recipe/からマスターデータをロードする|
+|~save|Bool|現在のシーンをマスターとする。同時にrecipe/に保存する。|
 
 ### To publish
 
 |Topic|タイプ|説明|
 |:----|:----|:----|
 |~master/*/floats|Floats|モデル点群。モデルをロードしたとき、およびシーンをsubscribeしたとき初期位置の点群をpublishする|
+|~cleared|Bool|~clear終了でアサートされる|
+|~solved|Bool|~solve終了でアサートされる|
+
+## Test
+~~~
+roslaunch rovi_utils searcher.launch
+~~~
+の後
+~~~
+rostopic pub -1 /request/capture std_msgs/Bool True
+~~~
+にて∞テストを開始します。マスターデータはrecipe/以下、シーンデータは../data/sample.plyを用いています。  
+solver_test.pyにて誤認識を検出する予定(アルゴリズム検討中)。
 
 ----
 ## Solver標準化  

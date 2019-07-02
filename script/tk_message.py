@@ -23,6 +23,7 @@ if __name__ == "__main__":
       rospy.Subscriber(tp,String,cb_sub,n)
 
   root=tk.Tk()
+  root.geometry("+0-0")
   text=tk.Text(root,width=100,height=10)
   text.insert(tk.INSERT,"-----------------------------messages--------------------------------")
   text.insert(tk.END,"\n")

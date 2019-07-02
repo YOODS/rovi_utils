@@ -32,6 +32,7 @@ def cb_load_ply(msg):
   pcd=o3d.read_point_cloud(Args["wd"]+"/sample.ply")
   outPn=np.reshape(np.asarray(pcd.points),(-1,3))
   pub.publish(np2F(outPn))
+  f=Bool();f.data=True;pub_ld.publish(f)
 
 def cb_ps(msg):
   global outPn
@@ -54,6 +55,7 @@ rospy.init_node("filer",anonymous=True)
 rospy.Subscriber("~in/floats",numpy_msg(Floats),cb_ps)
 rospy.Subscriber("~save",Bool,cb_save_ply)
 rospy.Subscriber("~load",Bool,cb_load_ply)
+pub_ld=rospy.Publisher("~loaded",Bool,queue_size=1)
 pub=rospy.Publisher("~out/floats",numpy_msg(Floats),queue_size=1)
 
 Args.update(parse_argv(sys.argv))

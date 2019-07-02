@@ -4,5 +4,4 @@ config:
     scene_frame_id: ["camera/capure0"]
     master_frame_id: ["camera/master0"]
     solve_frame_id: "camera/capture0"
-    org_frame_id: "camera/master0"
     tf_delay: 0.1
