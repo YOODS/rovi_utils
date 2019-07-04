@@ -29,9 +29,9 @@ Config={
   "path":"recipe",
   "scenes":["surface"],
   "solver":"o3d_solver",
-  "scene_frame_id":["camera/capture0"],
-  "master_frame_id":["camera/master0"],
-  "place_frame_id":"camera/capture0",
+  "scene_frame_id":[],
+  "master_frame_id":[],
+  "solve_frame_id":"",
   "tf_delay": 0.1
 }
 
@@ -60,7 +60,7 @@ def cb_save(msg):
     pub_pcs[n].publish(np2F(m))
   tfReg=[]
 #copy TF scene...->master... and save them
-  for n,s in enumerate(Config["scene_frame_id"]):
+  for s,m in zip(Config["scene_frame_id"],Config["master_frame_id"]):
     try:
       tf=tfBuffer.lookup_transform("world",s,rospy.Time())
     except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
@@ -68,12 +68,12 @@ def cb_save(msg):
       tf=TransformStamped()
       tf.header.stamp=rospy.Time.now()
       tf.header.frame_id="world"
-      tf.child_frame_id=s
       tf.transform.rotation.w=1
-    path=Config["path"]+"/"+Config["master_frame_id"][n].replace('/','_')+".yaml"
+    path=Config["path"]+"/"+m.replace('/','_')+".yaml"
     f=open(path,"w")
     f.write(yaml.dump(tflib.tf2dict(tf.transform)))
     f.close()
+    tf.child_frame_id=m
     tfReg.append(tf)
   broadcaster.sendTransform(tfReg)
   solver.learn(Model,Param)
@@ -88,12 +88,18 @@ def cb_load(msg):
   rospy.Timer(rospy.Duration(Config["tf_delay"]),cb_master,oneshot=True)
   tfReg=[]
 #load TF such as master/camera...
-  for n,m in enumerate(Config["master_frame_id"]):
+  for m in Config["master_frame_id"]:
     path=Config["path"]+"/"+m.replace('/','_')+".yaml"
     try:
       f=open(path, "r+")
     except Exception:
-      pub_msg.publish("searcher::file error "+path)
+      pub_msg.publish("searcher error::master TF file load failed"+path)
+      tf=TransformStamped()
+      tf.header.stamp=rospy.Time.now()
+      tf.header.frame_id="world"
+      tf.child_frame_id=m
+      tf.transform.rotation.w=1
+      tfReg.append(tf)
     else:
       yd=yaml.load(f)
       f.close()
@@ -103,27 +109,28 @@ def cb_load(msg):
       tf.header.frame_id="world"
       tf.child_frame_id=m
       tf.transform=trf
-      print "world->",m
-      print trf
       tfReg.append(tf)
   broadcaster.sendTransform(tfReg)
   Param.update(rospy.get_param("~param"))
   solver.learn(Model,Param)
   pub_msg.publish("searcher::model learning completed")
 
-def cb_score(event):
-  global solveResult
+def cb_notif(event):
   ret=Bool();ret.data=True;pub_Y2.publish(ret)
+
+def cb_score(event):
+  global solveResult,tfSolve
   cb_master(event)
-  score=Float32MultiArray()
-  for sc in solveResult:
-    d=MultiArrayDimension()
-    d.label=sc
-    d.size=len(solveResult[sc])
-    d.stride=1
-    print "score",d.label
+#  score=Float32MultiArray()
+#  for sc in solveResult:
+#    d=MultiArrayDimension()
+#    d.label=sc
+#    d.size=len(solveResult[sc])
+#    d.stride=1
+#    print "score",d.label
 #    score.dim.append(d)
 #  score.data_offset=0
+  rospy.Timer(rospy.Duration(Config["tf_delay"]),cb_notif,oneshot=True)
 
 def cb_solve(msg):
   global solveResult,tfSolve
@@ -136,16 +143,17 @@ def cb_solve(msg):
   RTs=solveResult["transform"]
   pub_msg.publish("searcher::"+str(len(RTs))+" model searched")
   tfSolve=[]
-  for n,rt in enumerate(RTs):
-    tf=TransformStamped()
-    tf.header.stamp=rospy.Time.now()
-    tf.header.frame_id=Config["place_frame_id"]
-    tf.child_frame_id="solve"+str(n)
-    tf.transform=tflib.fromRT(rt)
-    tfSolve.append(tf)
-  tfAll=copy.copy(tfReg)
-  tfAll.extend(tfSolve)
-  broadcaster.sendTransform(tfAll)
+  if len(Config["solve_frame_id"])>0:
+    for n,rt in enumerate(RTs):
+      tf=TransformStamped()
+      tf.header.stamp=rospy.Time.now()
+      tf.header.frame_id=Config["solve_frame_id"]
+      tf.child_frame_id=Config["solve_frame_id"]+"/solve"+str(n)
+      tf.transform=tflib.fromRT(rt)
+      tfSolve.append(tf)
+    tfAll=copy.copy(tfReg)
+    tfAll.extend(tfSolve)
+    broadcaster.sendTransform(tfAll)
   solveResult.pop("transform")   #to make cb_score publish other member but for "transform"
   rospy.Timer(rospy.Duration(Config["tf_delay"]),cb_score,oneshot=True)
 
@@ -229,6 +237,7 @@ Model=[None]*len(Config["scenes"])
 tfReg=[]
 tfSolve=[]
 
+rospy.Timer(rospy.Duration(5),cb_load,oneshot=True)
 try:
   rospy.spin()
 except KeyboardInterrupt:

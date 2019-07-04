@@ -1,0 +1,6 @@
+"Title:","searcher test"
+"Publisher:/request/model_load","マスター呼出"
+"Publisher:/request/model_save","マスター保存"
+"Publisher:/request/capture","撮像"
+"Publisher:/request/solve","解析"
+"Publisher:/request/clear","クリア"
