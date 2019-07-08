@@ -1,5 +1,6 @@
 config:
   searcher:
+    solver: km1_solver
     scenes: ["surface"]
     scene_frame_id: ["camera/capure0"]
     master_frame_id: ["camera/master0"]
