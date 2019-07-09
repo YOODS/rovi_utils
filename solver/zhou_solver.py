@@ -3,13 +3,15 @@
 import numpy as np
 import open3d as o3
 import copy
+import time
 
 Param={
-  "normal_max_nn":30,
+  "normal_max_nn":20,
   "normal_radius":0.01,
-  "feature_max_nn":100,
-  "feature_radius":0.02,
-  'distance_threshold':0.002
+  "feature_max_nn":200,
+  "feature_radius":0.025,
+  'distance_threshold':0.001,
+  'icp_threshold':0.0015
 }
 
 modFtArray=[]
@@ -46,20 +48,23 @@ def solve(datArray,prm):
   Param.update(prm)
   scnFtArray=[]
   scnPcArray=[]
+  t1=time.time()
   for dat in datArray:
     pc=fromNumpy(dat)
     scnPcArray.append(pc)
     scnFtArray.append(_get_features(pc))
-  resft=o3.registration_ransac_based_on_feature_matching(
+  print "time for extracting feature",time.time()-t1
+  t1=time.time()
+  resft=o3.registration.registration_fast_based_on_feature_matching(
     modPcArray[0],scnPcArray[0],modFtArray[0],scnFtArray[0],
-    Param["distance_threshold"],o3.TransformationEstimationPointToPoint(False),4,
-    [o3.CorrespondenceCheckerBasedOnEdgeLength(0.9),
-    o3.CorrespondenceCheckerBasedOnDistance(Param["distance_threshold"])],
-    o3.RANSACConvergenceCriteria(4000000, 500))
-  print "feature matching",resft.transformation,resft.fitness
+    o3.registration.FastGlobalRegistrationOption(
+      maximum_correspondence_distance=Param["distance_threshold"]))
+  print "time for feature matching",time.time()-t1
+  print "feature matching",resft.transformation
+#  return {"transform":[resft.transformation],"fitness":[0]}
   resicp=o3.registration_icp(
     modPcArray[0],scnPcArray[0],
-    Param["distance_threshold"],
+    Param["icp_threshold"],
     resft.transformation,o3.TransformationEstimationPointToPlane())
   return {"transform":[resicp.transformation],"fitness":[resicp.fitness],"rmse":[resicp.inlier_rmse]}        
 
