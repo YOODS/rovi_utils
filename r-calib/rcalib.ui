@@ -21,4 +21,5 @@
 "Number:/gridboard/origin_x","短辺側原点位置"
 "Number:/gridboard/origin_y","長辺側原点位置"
 "Number:/gridboard/unitleng","●間距離"
+"Number:/gridboard/gamma_correction","ガンマ補正"
 "Publisher:/reload/gridboard","反映"
