@@ -12,14 +12,6 @@ find_package(catkin REQUIRED COMPONENTS
 
 catkin_python_setup()
 
-generate_messages(
-  DEPENDENCIES
-  std_msgs
-  geometry_msgs
-  sensor_msgs
-  rovi
-)
-
 catkin_package(
   CATKIN_DEPENDS roscpp std_msgs geometry_msgs sensor_msgs tf2_ros
 )
