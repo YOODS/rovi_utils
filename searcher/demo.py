@@ -6,7 +6,7 @@ import copy
 import math
 import os
 import sys
-import o3d_solver as solver
+from rovi_utils import o3d_solver as solver
 from std_msgs.msg import Bool
 
 param={'radius_normal':2.0,'radius_feature':5.0,'maxnn_normal':30,'maxnn_feature':100,'distance_threshold':1.5,'icp_threshold':5.0}
