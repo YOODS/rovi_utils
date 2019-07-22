@@ -82,7 +82,7 @@ if __name__ == '__main__':
   print "Prepare model"
   pcd=o3d.read_point_cloud("model.ply")
   learn([toNumpy(pcd)],{})
-  pcd=o3d.read_point_cloud("sample.ply")
+  pcd=o3d.read_point_cloud("../data/sample.ply")
   result=solve([toNumpy(pcd)],{})
   Tmat=result["transform"]
   score=result["fitness"]

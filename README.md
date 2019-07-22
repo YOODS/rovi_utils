@@ -26,6 +26,10 @@ lib/python2.7以下のPythonスクリプトをPYTHONPATHの場所にコピーし
 ~~~
 cp lib/python2.7/*.py ~/catkin_ws/devel/lib/python2.7/dist-packages
 ~~~
+solver/以下のソルバーも同様にコピーします。
+~~~
+cp solver/*.py ~/catkin_ws/devel/lib/python2.7/dist-packages
+~~~
 
 ## カメラの初期設定  
 カメラをロボットに設置したときは、まずはr-calib(カメラとアームのキャリブレーション)を行います。ロボットドライバーを起動して  

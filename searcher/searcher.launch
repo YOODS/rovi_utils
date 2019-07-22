@@ -48,6 +48,7 @@
     <remap from="pc" to="/master/surface/pc1" />
   </node>
 
-  <!--   Message logger  -->
+  <!--  UI  -->
+  <node pkg="rqt_param_manager" type="rqt_param_manager" name="" args="conf:=$(find rovi_utils)/searcher/demo.ui" />
   <node pkg="rovi_utils" type="tk_message.py" name="" args="/message /rovi/error" />
 </launch>
