@@ -21,14 +21,18 @@
 ~~~
 sudo apt-get install python-tk
 ~~~
-- ローカルライブラリのインストール  
-lib/python2.7以下のPythonスクリプトをPYTHONPATHの場所にコピーします。例えば
+- tkFileDialog
 ~~~
-cp lib/python2.7/*.py ~/catkin_ws/devel/lib/python2.7/dist-packages
+pip install tkfilebrowser --user
 ~~~
-solver/以下のソルバーも同様にコピーします。
+### Open3D  
+Open3Dは0.7以上が必要です。これより古い場合は以下にてアップデートします。
 ~~~
-cp solver/*.py ~/catkin_ws/devel/lib/python2.7/dist-packages
+pip install open3d-python==0.7.0 --user
+~~~
+インストールにはPipのバージョン9.0.1以上が必要です、これより古い場合は以下にてアップデートします。
+~~~
+pip install pip==9.0.3
 ~~~
 
 ## カメラの初期設定  
@@ -36,11 +40,5 @@ cp solver/*.py ~/catkin_ws/devel/lib/python2.7/dist-packages
 [カメラとアームのキャリブレーション](r-calib/)
 
 ## rovi_utils-19.10 release note
-- **new**
-    - launch_manager
-    - picker 干渉チェック機能
-- searcher
-    - Parameter::torelanceを追加。許容範囲を超えるFrameはpublishしない
-    - Frame::solve...をマスターとの距離でソート
-- recipe_manager
-    - 「名前を変えて保存」機能追加
+- **new** picker  
+solverが出力した候補から、ひとつを選ぶ。干渉チェック機能を含む。
