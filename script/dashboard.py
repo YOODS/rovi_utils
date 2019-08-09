@@ -19,7 +19,7 @@ from tkfilebrowser import askopendirname, askopenfilenames, asksaveasfilename
 
 Config={
   "path":"~/",
-  "geometry":"900x80+0-0"
+  "geometry":"900x80-0-30"
 }
 Param={
   "recipe":""
@@ -59,12 +59,14 @@ def cb_run(n):
   item=Items[n]
   if "process" not in item:
     proc=subprocess.Popen(["roslaunch",item["package"],item["file"]])
-    item["label"]["background"]="#0099ff"
+    item["label"]["background"]="#0044CC"
+    item["label"]["foreground"]="#FFFF00"
     item["button"]["text"]="Stop"
     item["process"]=proc
   else:
     item["process"].terminate()
-    item["label"]["background"]="#ff0000"
+    item["label"]["background"]="#FF0000"
+    item["label"]["foreground"]="#555555"
     item["button"]["text"]="Start"
     item.pop("process")
 
@@ -112,10 +114,12 @@ if "path" in Config:
 ####Layout####
 root=tk.Tk()
 ttk.Style(root).theme_use("clam")
-root.title("Dash board")
+root.title("Dashboard")
 root.geometry(Config["geometry"])
 root.rowconfigure(0,weight=0)
 root.rowconfigure(1,weight=1)
+root.overrideredirect(True)
+
 frame1=tk.Frame(root,bd=2)
 frame1.pack(fill='x',anchor='nw')
 frame2=tk.Frame(root,bd=2)
@@ -124,7 +128,7 @@ for key in Config.keys():
   if key.startswith('launch') is not True:continue
   item=Config[key]
   n=len(Items)
-  wlabel=ttk.Label(frame1,text=item["note"],background='#ff0000')
+  wlabel=ttk.Label(frame1,text=item["note"],background='#FF0000',foreground='#555555')
   wlabel.pack(side='left',fill='y',anchor='nw')
   wbtn=ttk.Button(frame1,text='Start', width=4, command=functools.partial(cb_run,n))
   wbtn.pack(side='left',fill='y',anchor='nw')
@@ -133,7 +137,7 @@ for key in Config.keys():
   item["button"]=wbtn
   Items.append(item)
 
-wRecipe=ttk.Label(frame2,text="Recipe ["+Param["recipe"]+"]",background="#ffeeee")
+wRecipe=ttk.Label(frame2,text="Recipe ["+Param["recipe"]+"]",background="#0044CC",foreground="#FFFF00")
 wRecipe.grid(row=0,column=1,padx=0,pady=1,sticky='ew',columnspan=2)
 ttk.Button(frame2,text="Open Recipe",command=cb_open_dir).grid(row=1,column=1,padx=1,pady=1,sticky='nsew')
 ttk.Button(frame2,text="Save as",command=cb_save).grid(row=1,column=2,padx=1,pady=1,sticky='nsew')
