@@ -66,7 +66,7 @@ def cb_run(n):
   else:
     item["process"].terminate()
     item["label"]["background"]="#FF0000"
-    item["label"]["foreground"]="#555555"
+    item["label"]["foreground"]="#444444"
     item["button"]["text"]="Start"
     item.pop("process")
 
@@ -85,7 +85,7 @@ def parse_argv(argv):
       args[key] = tokens[1]
   return args
 ########################################################
-rospy.init_node("control_panel",anonymous=True)
+rospy.init_node("dashboard",anonymous=True)
 Config.update(parse_argv(sys.argv))
 try:
   Config.update(rospy.get_param("/config/dashboard"))
@@ -116,6 +116,7 @@ root=tk.Tk()
 ttk.Style(root).theme_use("clam")
 root.title("Dashboard")
 root.geometry(Config["geometry"])
+root.configure(background="#FFFF00")
 root.rowconfigure(0,weight=0)
 root.rowconfigure(1,weight=1)
 root.overrideredirect(True)
@@ -128,7 +129,7 @@ for key in Config.keys():
   if key.startswith('launch') is not True:continue
   item=Config[key]
   n=len(Items)
-  wlabel=ttk.Label(frame1,text=item["note"],background='#FF0000',foreground='#555555')
+  wlabel=ttk.Label(frame1,text=item["note"],background='#FF0000',foreground='#444444')
   wlabel.pack(side='left',fill='y',anchor='nw')
   wbtn=ttk.Button(frame1,text='Start', width=4, command=functools.partial(cb_run,n))
   wbtn.pack(side='left',fill='y',anchor='nw')
