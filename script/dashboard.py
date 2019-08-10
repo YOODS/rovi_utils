@@ -66,7 +66,7 @@ def cb_run(n):
   else:
     item["process"].terminate()
     item["label"]["background"]="#FF0000"
-    item["label"]["foreground"]="#555555"
+    item["label"]["foreground"]="#444444"
     item["button"]["text"]="Start"
     item.pop("process")
 
@@ -85,7 +85,7 @@ def parse_argv(argv):
       args[key] = tokens[1]
   return args
 ########################################################
-rospy.init_node("control_panel",anonymous=True)
+rospy.init_node("dashboard",anonymous=True)
 Config.update(parse_argv(sys.argv))
 try:
   Config.update(rospy.get_param("~config"))
@@ -116,23 +116,24 @@ root=tk.Tk()
 ttk.Style(root).theme_use("clam")
 root.title("Dashboard")
 root.geometry(Config["geometry"])
+root.configure(background="#FFFF00")
 root.rowconfigure(0,weight=0)
 root.rowconfigure(1,weight=1)
 root.overrideredirect(True)
 
-frame1=tk.Frame(root,bd=2)
+frame1=tk.Frame(root,bd=2,background="#FFFFFF")
 frame1.pack(fill='x',anchor='nw')
-frame2=tk.Frame(root,bd=2)
+frame2=tk.Frame(root,bd=2,background="#FFFFFF")
 frame2.pack(fill='x',anchor='nw',expand=1)
 for key in Config.keys():
   if key.startswith('launch') is not True:continue
   item=Config[key]
   n=len(Items)
-  wlabel=ttk.Label(frame1,text=item["note"],background='#FF0000',foreground='#555555')
+  wlabel=ttk.Label(frame1,text=item["note"],background='#FF0000',foreground='#444444')
   wlabel.pack(side='left',fill='y',anchor='nw')
   wbtn=ttk.Button(frame1,text='Start', width=4, command=functools.partial(cb_run,n))
   wbtn.pack(side='left',fill='y',anchor='nw')
-  ttk.Label(frame1,text=' ').pack(side='left')
+  ttk.Label(frame1,text=' ',background="#FFFFFF").pack(side='left')
   item["label"]=wlabel
   item["button"]=wbtn
   Items.append(item)
@@ -141,7 +142,7 @@ wRecipe=ttk.Label(frame2,text="Recipe ["+Param["recipe"]+"]",background="#0044CC
 wRecipe.grid(row=0,column=1,padx=0,pady=1,sticky='ew',columnspan=2)
 ttk.Button(frame2,text="Open Recipe",command=cb_open_dir).grid(row=1,column=1,padx=1,pady=1,sticky='nsew')
 ttk.Button(frame2,text="Save as",command=cb_save).grid(row=1,column=2,padx=1,pady=1,sticky='nsew')
-text=tk.Text(frame2,width=80,height=3)
+text=tk.Text(frame2,width=80,height=3,background="#FFFFDD")
 text.grid(row=0,column=3,padx=0,pady=1,sticky='nsew',rowspan=2)
 text.insert(tk.INSERT,"<<<<<<<<<<<<<<<<<<<messages>>>>>>>>>>>>>>>>>>>")
 text.insert(tk.END,"\n")
