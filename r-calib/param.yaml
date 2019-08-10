@@ -20,7 +20,8 @@ gridboard:
 rguide:
   height: 100
   width: 150
-  distance: [400, 500, 600]
+  distance: 400
+  zratio: 1.2
   rpy: [0,0,0, 40,0,0, 0,40,-10, -40,0,0, 0,-40,10]
 rovi:
   live:
@@ -28,6 +29,4 @@ rovi:
       ExposureTime: 30000
       Gain: 50
       SoftwareTriggerRate: 4
-  pshift_genpc:
-    projector:
-      Mode: 1
+

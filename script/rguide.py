@@ -14,7 +14,8 @@ Config={
   "K":"/rovi/left/remap/K"
 }
 Param={
-  "distance":[450,630],
+  "distance":450,
+  "zratio": 1.3,
   "width":150,
   "height":100,
   "rpy":[0,0,0, 40,0,0, 0,40,-10, -40,0,0, 0,-40,10],
@@ -37,8 +38,9 @@ def putguide(img,i):
   h=Param["height"]/2
   rect=np.asarray([[-w,-h,0],[w,-h,0],[w,h,0],[-w,h,0]])
   dist=Param["distance"]
+  k=Param["zratio"]
   pose=np.asarray(Param["rpy"]).reshape((-1,3))*np.pi/180
-  d=dist[int(i/len(pose))]
+  d=dist*(k**int(i/len(pose)))
   p=pose[i%len(pose)]
   rt=tf.transformations.euler_matrix(p[0],p[1],p[2],axes="rxyz")
   rt[2,3]=d

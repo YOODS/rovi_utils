@@ -1,6 +1,5 @@
 <launch>
   <include file="$(find rovi_utils)/config_tf/config_tf.launch" />
-
   <!--   Main body   -->
   <rosparam command="load" file="$(find rovi_utils)/r-calib/param.yaml" />
   <rosparam command="load" file="$(find rovi_utils)/r-calib/config.yaml" />
@@ -30,6 +29,5 @@
   </node>
   <!--   User interface  -->
   <node pkg="image_view" type="image_view" name="" args="image:=/rguide/image" />
-  <node pkg="rqt_param_manager" type="rqt_param_manager" name="" args="conf:=$(find rovi_utils)/r-calib/rcalib.ui dump:=$(find rovi_utils)/r-calib/param.yaml" />
-  <node pkg="rovi_utils" type="tk_message.py" name="" args="/message /rovi/error" />
+  <node pkg="rtk_tools" type="panel.py" name="" args="conf:=$(find rovi_utils)/r-calib/rcalib.zui dump:=$(find rovi_utils)/r-calib/param.yaml lift:=False geom:=300x500-0+350" output="screen" />
 </launch>

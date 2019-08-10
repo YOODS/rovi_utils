@@ -31,7 +31,7 @@ def cb_load(msg):
   Param["recipe"]=msg.data
   wRecipe["text"]="Recipe ["+Param["recipe"]+"]"
   if os.system("ls "+Config["path"]+"/recipe.d/"+Param["recipe"])==0:
-    rospy.set_param("~param",Param)
+    rospy.set_param("/dashboard",Param)
     commands.getoutput("cd "+Config["path"]+"; rm recipe; ln -s recipe.d/"+Param["recipe"]+" recipe")
     commands.getoutput("rosparam load "+Config["path"]+"/recipe/param.yaml")
     res=Bool(); res.data=True; pub_Y3.publish(res)
@@ -88,11 +88,11 @@ def parse_argv(argv):
 rospy.init_node("control_panel",anonymous=True)
 Config.update(parse_argv(sys.argv))
 try:
-  Config.update(rospy.get_param("~config"))
+  Config.update(rospy.get_param("/config/dashboard"))
 except Exception as e:
   print "get_param exception:",e.args
 #try:
-#  Param.update(rospy.get_param("~param"))
+#  Param.update(rospy.get_param("/dashboard"))
 #except Exception as e:
 #  print "get_param exception:",e.args
 
@@ -108,7 +108,7 @@ if "path" in Config:
   if "->" in ln:
     dst=re.sub(r".*->","",ln)
     Param["recipe"]=re.sub(r".*/","",dst)
-    rospy.set_param("~param",Param)
+    rospy.set_param("/dashboard",Param)
   commands.getoutput("rosparam load "+Config["path"]+"/recipe/param.yaml")
 
 ####Layout####
@@ -120,9 +120,9 @@ root.rowconfigure(0,weight=0)
 root.rowconfigure(1,weight=1)
 root.overrideredirect(True)
 
-frame1=tk.Frame(root,bd=2)
+frame1=tk.Frame(root,bd=2,background="#FFFFFF")
 frame1.pack(fill='x',anchor='nw')
-frame2=tk.Frame(root,bd=2)
+frame2=tk.Frame(root,bd=2,background="#FFFFFF")
 frame2.pack(fill='x',anchor='nw',expand=1)
 for key in Config.keys():
   if key.startswith('launch') is not True:continue
@@ -132,7 +132,7 @@ for key in Config.keys():
   wlabel.pack(side='left',fill='y',anchor='nw')
   wbtn=ttk.Button(frame1,text='Start', width=4, command=functools.partial(cb_run,n))
   wbtn.pack(side='left',fill='y',anchor='nw')
-  ttk.Label(frame1,text=' ').pack(side='left')
+  ttk.Label(frame1,text=' ',background="#FFFFFF").pack(side='left')
   item["label"]=wlabel
   item["button"]=wbtn
   Items.append(item)
@@ -141,7 +141,7 @@ wRecipe=ttk.Label(frame2,text="Recipe ["+Param["recipe"]+"]",background="#0044CC
 wRecipe.grid(row=0,column=1,padx=0,pady=1,sticky='ew',columnspan=2)
 ttk.Button(frame2,text="Open Recipe",command=cb_open_dir).grid(row=1,column=1,padx=1,pady=1,sticky='nsew')
 ttk.Button(frame2,text="Save as",command=cb_save).grid(row=1,column=2,padx=1,pady=1,sticky='nsew')
-text=tk.Text(frame2,width=80,height=3)
+text=tk.Text(frame2,width=80,height=3,background="#FFFFCC")
 text.grid(row=0,column=3,padx=0,pady=1,sticky='nsew',rowspan=2)
 text.insert(tk.INSERT,"<<<<<<<<<<<<<<<<<<<messages>>>>>>>>>>>>>>>>>>>")
 text.insert(tk.END,"\n")
