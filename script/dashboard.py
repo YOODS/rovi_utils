@@ -5,21 +5,28 @@ import roslib
 import rospy
 import sys
 import os
+import time
 import commands
 import subprocess
 import functools
 import re
+from func_timeout import func_timeout, FunctionTimedOut
+
 from std_msgs.msg import Bool
 from std_msgs.msg import String
 
 import Tkinter as tk
 import ttk
+import tkMessageBox
 import tkFileDialog as filedialog
 from tkfilebrowser import askopendirname, askopenfilenames, asksaveasfilename
 
 Config={
   "path":"~/",
-  "geometry":"900x80-0-30"
+  "geometry":"900x80-0-30",
+  "confirm":"Stop anyway",
+  "open_recipe":"Open",
+  "save_as":"Save As"
 }
 Param={
   "recipe":""
@@ -54,26 +61,80 @@ def cb_save():
     print "save",ret
 
 ####launch manager############
+msgBox=None
 def cb_run(n):
-  global Items
+  global Items,msgBox
+  if msgBox is not None:
+    msgBox.destroy()
+    msgBox=None
   item=Items[n]
   if "process" not in item:
     proc=subprocess.Popen(["roslaunch",item["package"],item["file"]])
-    item["label"]["background"]="#0044CC"
-    item["label"]["foreground"]="#FFFF00"
+    item["tag"]["background"]="#FFFFFF"
+    item["tag"]["foreground"]="#000000"
     item["button"]["text"]="Stop"
     item["process"]=proc
-  else:
+  elif "shutdown" not in item:
+    if "confirm" in item:
+      if item["confirm"]:
+        w=item["tag"]
+        msgBox=tk.Tk()
+        msgBox.title("Confirm")
+        msgBox.geometry("100x30+"+str(w.winfo_rootx())+"+"+str(w.winfo_rooty()+30))
+        try:
+          f=tkMessageBox.askyesno("Confirm",Config["confirm"],parent=msgBox)
+        except:
+          print "Message box exception"
+          f=False
+        if msgBox is None: return
+        msgBox.destroy()
+        msgBox=None
+        if f is False: return
     item["process"].terminate()
-    item["label"]["background"]="#FF0000"
-    item["label"]["foreground"]="#444444"
-    item["button"]["text"]="Start"
-    item.pop("process")
+    item["shutdown"]=True
+    set_timeout(functools.partial(cb_stop,n),2)
+
+def cb_stop(n):
+  global Items
+  item=Items[n]
+  item["tag"]["background"]="#888888"
+  item["tag"]["foreground"]="#000000"
+  item["button"]["text"]="Start"
+  item.pop("process")
+  item.pop("shutdown")
+
+####setTimeout
+sto_time=0
+sto_index=0
+sto_tarray=[]
+sto_farray=[]
+def sto_reflesh():
+  global sto_time,sto_index,sto_tarray,sto_farray
+  if len(sto_tarray)>0:
+    sto_time=min(sto_tarray)
+    sto_index=sto_tarray.index(sto_time)
+  else:
+    sto_time=0
+def set_timeout(cb,delay):
+  global sto_time,sto_index,sto_tarray,sto_farray
+  t=time.time()+delay
+  sto_tarray.append(t)
+  sto_farray.append(cb)
+  sto_reflesh()
 
 ####Message box
 buffer=[]
 def cb_sub(msg):
   buffer.append(msg.data)
+def cb_log():
+  if len(buffer)==0: return
+  msg=""
+  while len(buffer)>0:
+    msg=msg+buffer.pop(0)+"\n"
+  sub=tk.Tk()
+  text=tk.Text(sub,width=100,height=20,background="#FFFFCC")
+  text.pack(side='left',fill='y',anchor='nw')
+  text.insert("1.0",msg)
 
 ########################################################
 def parse_argv(argv):
@@ -115,41 +176,38 @@ if "path" in Config:
 root=tk.Tk()
 ttk.Style(root).theme_use("clam")
 root.title("Dashboard")
+root.config(background="#00FF00")
+root.config(bd=1)
 root.geometry(Config["geometry"])
-root.configure(background="#FFFF00")
-root.rowconfigure(0,weight=0)
-root.rowconfigure(1,weight=1)
+root.rowconfigure(0,weight=1)
 root.overrideredirect(True)
 
-frame1=tk.Frame(root,bd=2,background="#FFFFFF")
-frame1.pack(fill='x',anchor='nw')
-frame2=tk.Frame(root,bd=2,background="#FFFFFF")
-frame2.pack(fill='x',anchor='nw',expand=1)
+#frame1=tk.Frame(root,bd=2,relief="ridge",background="#00FF00").pack(anchor='nw',expand=1)
+ttk.Button(root,text="*",width=1,command=cb_log).pack(side='left',anchor='nw',padx=(0,10))
 for key in Config.keys():
-  if key.startswith('launch') is not True:continue
-  item=Config[key]
-  n=len(Items)
-  wlabel=ttk.Label(frame1,text=item["note"],background='#FF0000',foreground='#444444')
-  wlabel.pack(side='left',fill='y',anchor='nw')
-  wbtn=ttk.Button(frame1,text='Start', width=4, command=functools.partial(cb_run,n))
-  wbtn.pack(side='left',fill='y',anchor='nw')
-  ttk.Label(frame1,text=' ',background="#FFFFFF").pack(side='left')
-  item["label"]=wlabel
-  item["button"]=wbtn
-  Items.append(item)
-
-wRecipe=ttk.Label(frame2,text="Recipe ["+Param["recipe"]+"]",background="#0044CC",foreground="#FFFF00")
-wRecipe.grid(row=0,column=1,padx=0,pady=1,sticky='ew',columnspan=2)
-ttk.Button(frame2,text="Open Recipe",command=cb_open_dir).grid(row=1,column=1,padx=1,pady=1,sticky='nsew')
-ttk.Button(frame2,text="Save as",command=cb_save).grid(row=1,column=2,padx=1,pady=1,sticky='nsew')
-text=tk.Text(frame2,width=80,height=3,background="#FFFFCC")
-text.grid(row=0,column=3,padx=0,pady=1,sticky='nsew',rowspan=2)
-text.insert(tk.INSERT,"<<<<<<<<<<<<<<<<<<<messages>>>>>>>>>>>>>>>>>>>")
-text.insert(tk.END,"\n")
+  if key.startswith('launch'):
+    item=Config[key]
+    n=len(Items)
+    wlabel=ttk.Label(root,text=item["label"],background='#888888',foreground='#000000')
+    wlabel.pack(side='left',fill='y',anchor='w')
+    wbtn=ttk.Button(root,text='Start', width=4, command=functools.partial(cb_run,n))
+    wbtn.pack(side='left',fill='y',anchor='w',padx=(0,10))
+    item["tag"]=wlabel
+    item["button"]=wbtn
+    if "auto" in item:
+      set_timeout(functools.partial(cb_run,n),item["auto"])
+    Items.append(item)
+ttk.Button(root,text=Config["save_as"],command=cb_save).pack(side='right',fill='y',anchor='e')
+ttk.Button(root,text=Config["open_recipe"],command=cb_open_dir).pack(side='right',fill='y',anchor='e')
+wRecipe=ttk.Label(root,text="Recipe ["+Param["recipe"]+"]",background="#FFFFFF",foreground="#000000").pack(side='right',fill='y',anchor='e')
 
 while not rospy.is_shutdown():
-  if len(buffer)>0:
-    while len(buffer)>0:
-      s=buffer.pop(0)
-      text.insert("1.0",s+"\n")
+  if sto_time>0:
+    if time.time()>sto_time:
+      cb=sto_farray[sto_index]
+      sto_tarray.pop(sto_index)
+      sto_farray.pop(sto_index)
+      sto_reflesh()
+      print "timeout callback"
+      cb()
   root.update()
