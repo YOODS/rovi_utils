@@ -22,7 +22,6 @@ rguide:
   width: 150
   distance: 400
   zratio: 1.2
-  rpy: [0,0,0, 40,0,0, 0,40,-10, -40,0,0, 0,-40,10]
 rovi:
   live:
     camera:
