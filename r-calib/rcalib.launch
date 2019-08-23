@@ -1,8 +1,20 @@
 <launch>
-  <include file="$(find rovi_utils)/config_tf/config_tf.launch" />
-  <!--   Main body   -->
-  <rosparam command="load" file="$(find rovi_utils)/r-calib/param.yaml" />
+  <arg name="package" default="rovi_utils" />
+  <arg name="config_tf" default="config_tf.yaml" />
+  <arg name="file" default="r-calib/config.yaml" />
+  <rosparam command="load" file="$(find rovi_utils)/../$(arg package)/$(arg config_tf)" />
   <rosparam command="load" file="$(find rovi_utils)/r-calib/config.yaml" />
+  <rosparam command="load" file="$(find rovi_utils)/r-calib/param.yaml" />
+  <rosparam command="load" file="$(find rovi_utils)/../$(arg package)/$(arg file)" />
+
+  <node pkg="rovi_utils" type="config_tf.py" name="config_tf" />
+  <node pkg="rtk_tools" type="panel.py" name="" args="
+    conf:=$(find rovi_utils)/config_tf/config_tf.zui
+    dump:=$(find rovi_utils)/../$(arg package)/$(arg file)
+    lift:=False
+    geom:=300x300-0+5"
+  />
+
   <param name="/rovi/live/camera/SoftwareTriggerRate" type="double" value="4" />
   <param name="/rovi/pshift_genpc/projector/Mode" type="int" value="1" />
   <node pkg="rovi" type="grid_node" name="grid_node" args="/rovi/left/remap/Kn">
@@ -31,5 +43,10 @@
   <node ns="rcalib" pkg="image_view" type="image_view" name="image_view" args="image:=/rguide/image">
     <remap from="~" to="/config/rcalib/image_view" />
   </node>
-  <node pkg="rtk_tools" type="panel.py" name="" args="conf:=$(find rovi_utils)/r-calib/rcalib.zui dump:=$(find rovi_utils)/r-calib/param.yaml lift:=False geom:=300x500-0+350" output="screen" />
+  <node pkg="rtk_tools" type="panel.py" name="" args="
+    conf:=$(find rovi_utils)/r-calib/rcalib.zui
+    dump:=$(find rovi_utils)/../$(arg package)/$(arg file)
+    lift:=False
+    geom:=300x500-0+350"
+  />
 </launch>
