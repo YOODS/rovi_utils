@@ -1,6 +1,6 @@
 # Robot Calibration
 
-## Preparation
+## 準備
 
 1. VISPスタックをインストール
 https://visp.inria.fr/
@@ -10,12 +10,10 @@ sudo apt-get install ros-kinetic-visp
 sudo apt-get install ros-kinetic-visp-hand2eye-calibration
 ~~~
 
-2. config_tf.yamlの編集  
-ロボットドライバから発行されるTFに合わせて、フレーム名を編集します。cameraとflangeフレームが必須です。  
-このファイルは、本ユーテリティを起動するとパネルから変更可能です。パネルから変更した場合は「保存」ボタンを押した後、一旦ユーテリティを終了して再起動しなければなりません。  
-またこのファイルはmaster_teachなど他のアプリケーションでも共用する重要なファイルですので、フレーム名など間違いがないことを確認してください。  
-ファイルロケーションはrovi_utils直下です。  
-**注意**)固定カメラを使うときは"カメラマウントフレームID"(/config_tf/camera/parent_frame_id)をworldにします。ソフトウェアはcameraがworldの直下にある場合を固定カメラと判断しているので、この間に中間的なフレームを介さないようにしてください。
+2. カメラマウントの定義  
+config_tf.yamlを参考にcameraがどこにマウントされているかを記述します。ハンドアイの場合は、ロボットドライバから発行されるTFに合わせて、親フレーム名を編集します。cameraとflangeフレームが必須です。
+**注意**  
+(1)固定カメラを使うときは"カメラマウントフレームID"(/config_tf/camera/parent_frame_id)をworldにします。ソフトウェアはcameraがworldの直下にある場合を固定カメラと判断しているので、この間に中間的なフレームを介さないようにします。  
 
 3. キャリブ板  
 こちらから[A4サイズキャリブ板](gridboard.pdf)-(Y18,X13)-Pitch=15mmを印刷し、平らな板に貼り付けてキャリブ板を作ります[^1]。
@@ -39,19 +37,26 @@ sudo apt-get install ros-kinetic-visp-hand2eye-calibration
 - 背景が黒のキャリブ板の場合、gamma_correctionは0.5〜0.7付近、背景が白の場合は1.0に設定してください。
 ~~~
 
-## Launch
+## 起動
 
 1. [RoVIの起動](https://github.com/YOODS/rovi#%E8%B5%B7%E5%8B%95)
 
 2. ロボットドライバ起動
 
-3. ロボットキャリブレーションユーティリティの起動
-
+3. /config_tfパラメータのロード  
+準備の２にて作成したyamlファイルをロードします。ファイル名がconfig_tf.yamlすると
 ~~~
+rosparam load config_tf.yaml
+~~~
+
+4. ロボットキャリブレーションユーティリティの起動  
+
+~~~  
 roslaunch rovi_utils rcalib.launch
 ~~~
 
-4. 確認  
+5. 確認  
+rvizのTF表示にて確認します。以下のツールでも確認できます。
 ~~~
 rosrun rqt_tf_tree rqt_tf_tree
 ~~~
@@ -59,7 +64,7 @@ rosrun rqt_tf_tree rqt_tf_tree
 
 ![tf tree](frames.png)
 
-## Operation  
+## 操作  
 ロボットキャリブレーションは、この図の"camera"フレームとそのベースフレーム(図中"J5"フレーム)の座標変換を求める、ことです。  
 次の手順にて行います。
 
@@ -81,17 +86,16 @@ rosrun rqt_tf_tree rqt_tf_tree
 5. 保存  
 解析結果のTransformは*ConfigTFパネル*の"カメラ/カメラマウント変換"に表示されています。誤差が妥当であれば「保存」ボタンを押してconfig_tf.yamlに書き込みます。
 6. 利用  
-このキャリブレーション結果を他のアプリケーションで利用するときには、そのアプリケーションのlaunchの最初でconfig_tfを起動するようにします。以下に例を示します。
-~~~
-  <rosparam command="load" file="$(find rovi_utils)/config_tf.yaml" />
-  <node pkg="rovi_utils" type="config_tf.py" name="config_tf" />
-~~~
-
+このキャリブレーション結果をそれぞれのパッケージ内のファイルに反映させるには、後述の起動オプションにてファイルを指定します。
 
 ## Appendix
+### 起動オプション
 
-launch後のTopicは以下のようにアサインされる。
+|タグ|デフォルト値|説明|
+|:----|:----|:----|
+|result|r-calib/rcalib.yaml|キャリブレーション結果Transformを書き出すyamlファイル名を与える|
 
+### Topics
 1. To subscribe
 
 |name|type|description|
