@@ -1,16 +1,11 @@
 <launch>
-  <arg name="package" default="rovi_utils" />
-  <arg name="config_tf" default="config_tf.yaml" />
-  <arg name="file" default="r-calib/config.yaml" />
-  <rosparam command="load" file="$(find rovi_utils)/../$(arg package)/$(arg config_tf)" />
+  <arg name="result" default="rovi_utils/r-calib/rcalib.yaml" />
   <rosparam command="load" file="$(find rovi_utils)/r-calib/config.yaml" />
   <rosparam command="load" file="$(find rovi_utils)/r-calib/param.yaml" />
-  <rosparam command="load" file="$(find rovi_utils)/../$(arg package)/$(arg file)" />
-
   <node pkg="rovi_utils" type="config_tf.py" name="config_tf" />
   <node pkg="rtk_tools" type="panel.py" name="" args="
     conf:=$(find rovi_utils)/config_tf/config_tf.zui
-    dump:=$(find rovi_utils)/../$(arg package)/$(arg file)
+    dump:=$(find rovi_utils)/../$(arg result)
     lift:=False
     geom:=300x300-0+5"
   />
@@ -45,7 +40,7 @@
   </node>
   <node pkg="rtk_tools" type="panel.py" name="" args="
     conf:=$(find rovi_utils)/r-calib/rcalib.zui
-    dump:=$(find rovi_utils)/../$(arg package)/$(arg file)
+    dump:=$(find rovi_utils)/r-calib/param.yaml
     lift:=False
     geom:=300x500-0+350"
   />
