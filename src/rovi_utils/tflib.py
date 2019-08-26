@@ -18,7 +18,7 @@ def dict2tf(d):
   return tf
 
 def tf2dict(tf):
-  d={'translation':{'x':0,'y':0,'x':0},'rotation':{'x':0,'y':0,'x':0,'w':0}}
+  d={'translation':{'x':0,'y':0,'z':0},'rotation':{'x':0,'y':0,'z':0,'w':0}}
   d['translation']['x']=tf.translation.x
   d['translation']['y']=tf.translation.y
   d['translation']['z']=tf.translation.z
