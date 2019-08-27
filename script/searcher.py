@@ -139,6 +139,12 @@ def cb_solve(msg):
     ret=Bool();ret.data=False;pub_Y2.publish(ret)
     return
   Param.update(rospy.get_param("~param"))
+  solveResult=None
+  cb_busy(True)
+  rospy.Timer(rospy.Duration(0.01),cb_solve_do,oneshot=True)
+
+def cb_solve_do(msg):
+  global solveResult,tfSolve
   solveResult=solver.solve(Scene,Param)
   RTs=solveResult["transform"]
   pub_msg.publish("searcher::"+str(len(RTs))+" model searched")
@@ -186,6 +192,16 @@ def cb_clear(msg):
   rospy.Timer(rospy.Duration(0.1),cb_tfreset,oneshot=True)
   rospy.Timer(rospy.Duration(0.2),cb_master,oneshot=True)
 
+def cb_busy(event):
+  global solveResult
+  f=Bool()
+  if solveResult is None:
+    f.data=True
+    pub_busy.publish(f)
+    rospy.Timer(rospy.Duration(0.5),cb_busy,oneshot=True)
+  else:
+    pub_busy.publish(f)
+
 def parse_argv(argv):
   args={}
   for arg in argv:
@@ -219,6 +235,7 @@ for n,c in enumerate(Config["scenes"]):
   rospy.Subscriber("~in/"+c+"/floats",numpy_msg(Floats),cb_ps,n)
   pub_pcs.append(rospy.Publisher("~master/"+c+"/floats",numpy_msg(Floats),queue_size=1))
 pub_Y2=rospy.Publisher("~solved",Bool,queue_size=1)
+pub_busy=rospy.Publisher("~stat",Bool,queue_size=1)
 pub_score=rospy.Publisher("~score",Float32MultiArray,queue_size=1)
 rospy.Subscriber("~clear",Bool,cb_clear)
 rospy.Subscriber("~solve",Bool,cb_solve)
