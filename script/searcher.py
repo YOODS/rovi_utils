@@ -54,6 +54,10 @@ def cb_save(msg):
     if Scene[n] is None: continue
     pc=o3d.PointCloud()
     m=Scene[n]
+    if(len(m)==0):
+      pub_err.publish("searcher::save::point cloud ["+l+"] has no point")
+      pub_saved.publish(mFalse)
+      return
     Model[n]=m
     pc.points=o3d.Vector3dVector(m)
     o3d.write_point_cloud(Config["path"]+"/"+l+".ply",pc,True,False)
@@ -64,7 +68,7 @@ def cb_save(msg):
     try:
       tf=tfBuffer.lookup_transform("world",s,rospy.Time())
     except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
-      pub_msg.publish("searcher::capture::lookup failure world->"+s)
+#     pub_msg.publish("searcher::capture::lookup failure world->"+s)
       tf=TransformStamped()
       tf.header.stamp=rospy.Time.now()
       tf.header.frame_id="world"
@@ -77,7 +81,8 @@ def cb_save(msg):
     tfReg.append(tf)
   broadcaster.sendTransform(tfReg)
   solver.learn(Model,Param)
-  pub_msg.publish("searcher::model learning completed")
+  pub_msg.publish("searcher::master plys and frames saved")
+  pub_saved.publish(mTrue)
 
 def cb_load(msg):
   global Model,tfReg
@@ -113,7 +118,8 @@ def cb_load(msg):
   broadcaster.sendTransform(tfReg)
   Param.update(rospy.get_param("~param"))
   solver.learn(Model,Param)
-  pub_msg.publish("searcher::model learning completed")
+  pub_msg.publish("searcher::model loaded and learning completed")
+  pub_loaded.publish(mTrue)
 
 def cb_notif(event):
   ret=Bool();ret.data=True;pub_Y2.publish(ret)
@@ -236,12 +242,21 @@ for n,c in enumerate(Config["scenes"]):
   pub_pcs.append(rospy.Publisher("~master/"+c+"/floats",numpy_msg(Floats),queue_size=1))
 pub_Y2=rospy.Publisher("~solved",Bool,queue_size=1)
 pub_busy=rospy.Publisher("~stat",Bool,queue_size=1)
+pub_saved=rospy.Publisher("~saved",Bool,queue_size=1)
+pub_loaded=rospy.Publisher("~loaded",Bool,queue_size=1)
 pub_score=rospy.Publisher("~score",Float32MultiArray,queue_size=1)
 rospy.Subscriber("~clear",Bool,cb_clear)
 rospy.Subscriber("~solve",Bool,cb_solve)
 rospy.Subscriber("~save",Bool,cb_save)
 rospy.Subscriber("~load",Bool,cb_load)
 pub_msg=rospy.Publisher("/message",String,queue_size=1)
+pub_err=rospy.Publisher("/error",String,queue_size=1)
+
+###std_msgs/Bool
+mTrue=Bool()
+mTrue.data=True
+mFalse=Bool()
+mFalse.data=False
 
 ###TF
 tfBuffer=tf2_ros.Buffer()
