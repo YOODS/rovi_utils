@@ -217,12 +217,12 @@ pub_msg=rospy.Publisher("/message",String,queue_size=1)
 
 ###Globals
 mTrue=Bool();mTrue.data=True
-mFalse=Bool();mTrue.data=False
+mFalse=Bool();mFalse.data=False
 tfBuffer=tf2_ros.Buffer()
 listener=tf2_ros.TransformListener(tfBuffer)
 broadcaster=tf2_ros.StaticTransformBroadcaster()
 rospy.sleep(1)
-cb_clear(Bool())
+cb_clear(mTrue)
 
 try:
   rospy.spin()
