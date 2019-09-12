@@ -127,15 +127,15 @@ def cb_notif(event):
 def cb_score(event):
   global solveResult,tfSolve
   cb_master(event)
-#  score=Float32MultiArray()
-#  for sc in solveResult:
-#    d=MultiArrayDimension()
-#    d.label=sc
-#    d.size=len(solveResult[sc])
-#    d.stride=1
-#    print "score",d.label
-#    score.dim.append(d)
-#  score.data_offset=0
+  score=Float32MultiArray()
+  score.layout.data_offset=0
+  for n,sc in enumerate(solveResult):
+    score.layout.dim.append(MultiArrayDimension())
+    score.layout.dim[n].label=sc
+    score.layout.dim[n].size=len(solveResult[sc])
+    score.layout.dim[n].stride=1
+    score.data.extend(solveResult[sc])
+  pub_score.publish(score)
   rospy.Timer(rospy.Duration(Config["tf_delay"]),cb_notif,oneshot=True)
 
 def cb_solve(msg):
@@ -249,6 +249,7 @@ rospy.Subscriber("~clear",Bool,cb_clear)
 rospy.Subscriber("~solve",Bool,cb_solve)
 rospy.Subscriber("~save",Bool,cb_save)
 rospy.Subscriber("~load",Bool,cb_load)
+rospy.Subscriber("~redraw",Bool,cb_master)
 pub_msg=rospy.Publisher("/message",String,queue_size=1)
 pub_err=rospy.Publisher("/error",String,queue_size=1)
 
