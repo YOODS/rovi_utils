@@ -52,10 +52,9 @@ def voxel(data):
 def getRT(base,ref):
   try:
     ts=tfBuffer.lookup_transform(base,ref,rospy.Time())
-    pub_msg.publish("cropper::getRT::TF lookup success "+base+"->"+ref)
+    rospy.loginfo("cropper::getRT::TF lookup success "+base+"->"+ref)
     RT=tflib.toRT(ts.transform)
   except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
-    pub_msg.publish("cropper::getRT::TF lookup failure "+base+"->"+ref)
     RT=None
   return RT
 
@@ -71,7 +70,7 @@ def arrange(pc,n):
         RT=getRT(outc,capc)
         if RT is None:
           RT=np.eye(4)
-  print "arrange",RT
+          rospy.logwarn("cropper::arrange::TF not found")
   return np.dot(RT[:3],np.vstack((pc.T,np.ones((1,len(pc)))))).T
 
 def crop():

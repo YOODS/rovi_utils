@@ -49,6 +49,10 @@ def cb_path(msg):
     Path.append(tflib.toRT(tflib.fromVec(vec)))
 
 def cb_score(msg):
+  try:
+    Param.update(rospy.get_param("~param"))
+  except Exception as e:
+    print "get_param exception:",e.args
   dstart=0
   for n,sc in enumerate(msg.layout.dim):
     key=msg.layout.dim[n].label
