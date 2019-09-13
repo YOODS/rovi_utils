@@ -175,7 +175,7 @@ pb_err=rospy.Publisher('~error',Float64,queue_size=1)
 pb_count=rospy.Publisher('~count',Int32,queue_size=1)
 pb_Y0=rospy.Publisher('~cleared',Bool,queue_size=1)    #X0 done
 pb_Y1=rospy.Publisher('~captured',Bool,queue_size=1)    #X1 done
-pb_Y1=rospy.Publisher('~solved',Bool,queue_size=1)    #X2 done
+pb_Y2=rospy.Publisher('~solved',Bool,queue_size=1)    #X2 done
 
 rospy.Subscriber('~clear',Bool,cb_X0)
 rospy.Subscriber('~capture',Bool,cb_X1)

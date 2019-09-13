@@ -1,0 +1,17 @@
+config_tf:
+  camera:
+    parent_frame_id: L6
+    transform:
+      rotation:
+        w: 1.0
+        x: 0.0
+        y: 0.0
+        z: 0.0
+      translation:
+        x: 0.0
+        y: 0.0
+        z: 0.0
+  flange:
+    parent_frame_id: L6
+  L6:
+    parent_frame_id: L6

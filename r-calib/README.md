@@ -1,6 +1,9 @@
 # Robot Calibration
 
-## Preparation
+[VTからロボットキャリブを使うときはこちら](HowTo.md)
+
+
+## 準備
 
 1. VISPスタックをインストール
 https://visp.inria.fr/
@@ -10,33 +13,53 @@ sudo apt-get install ros-kinetic-visp
 sudo apt-get install ros-kinetic-visp-hand2eye-calibration
 ~~~
 
-2. config_tf.yamlの編集  
-ロボットドライバから発行されるTFに合わせて、フレーム名を編集します。cameraとflangeフレームが必須です。  
-このファイルは、本ユーテリティを起動するとパネルから変更可能です。パネルから変更した場合は「保存」ボタンを押した後、一旦ユーテリティを終了して再起動しなければなりません。  
-またこのファイルはmaster_teachなど他のアプリケーションでも共用する重要なファイルですので、フレーム名など間違いがないことを確認してください。  
-ファイルロケーションはrovi_utils直下です。  
-**注意**)固定カメラを使うときは"カメラマウントフレームID"(/config_tf/camera/parent_frame_id)をworldにします。ソフトウェアはcameraがworldの直下にある場合を固定カメラと判断しているので、この間に中間的なフレームを介さないようにしてください。
+2. カメラマウントの定義  
+config_tf.yamlを参考にcameraがどこにマウントされているかを記述します。ハンドアイの場合は、ロボットドライバから発行されるTFに合わせて、親フレーム名を編集します。cameraとflangeフレームが必須です。
+**注意**  
+(1)固定カメラを使うときは"カメラマウントフレームID"(/config_tf/camera/parent_frame_id)をworldにします。ソフトウェアはcameraがworldの直下にある場合を固定カメラと判断しているので、この間に中間的なフレームを介さないようにします。  
 
-3. param.yamlの編集  
-使用するキャリブ板に合わせてparam.yamlを編集します。このファイルもユーティリティ起動後はパネルから変更可能です。　 
-ファイルロケーションはrovi_utils/r-calibです。
+3. キャリブ板  
+こちらから[A4サイズキャリブ板](gridboard.pdf)-(Y18,X13)-Pitch=15mmを印刷し、平らな板に貼り付けてキャリブ板を作ります[^1]。
+[^1]: PDFを印刷して使用する場合、拡大縮小しないで100%で出力してください。
+キャリブ板は自分で作ることもできます。以下の条件でイラストレータ等を使って作ってください。
 
-4. キャリブ板  
-こちらから[キャリブ板](gridboard.pdf)を印刷し、平らな板に貼り付けてキャリブ板を作ります。
+~~~
+- 二重丸のサイズは黒丸のサイズと同じ。二重丸の内側の半径は外側の半径の半分とする。
+- 二重丸は３つ。中央にひと、X軸方向には中央からひとつ飛ばして、Y軸方向には中央に隣接するように配置する。
+- それ以外は黒丸。丸は中央二重丸を基準として、上下左右対称な個数があるのがのぞましい。
+- あまり細かすると円の輪郭認識精度が悪くなる。
+- ボードは白黒反転しても構いません。
+~~~
 
-## Launch
+4. param.yamlの編集  
+使用するキャリブ板に合わせて以下のようにparam.yamlを編集します。このファイルもユーティリティ起動後はパネルから変更可能です。ファイルの配置場所はrovi_utils/r-calibです。
+
+~~~
+- n_circles_x, n_circles_yをXY方向の●の下図に合わせてください。X方向は二重丸が一つ間が空いてる方向、Y方向は二重丸が隣接している方向です。
+- origin_x, origin_yをXYの＋方向から数えた中心位置の数に合わせる。カウントはゼロからとしてください。
+- 背景が黒のキャリブ板の場合、gamma_correctionは0.5〜0.7付近、背景が白の場合は1.0に設定してください。
+~~~
+
+## 起動
 
 1. [RoVIの起動](https://github.com/YOODS/rovi#%E8%B5%B7%E5%8B%95)
 
 2. ロボットドライバ起動
 
-3. ロボットキャリブレーションユーティリティの起動
-
+3. /config_tfパラメータのロード  
+準備の２にて作成したyamlファイルをロードします。ファイル名がconfig_tf.yamlすると
 ~~~
+rosparam load config_tf.yaml
+~~~
+
+4. ロボットキャリブレーションユーティリティの起動  
+
+~~~  
 roslaunch rovi_utils rcalib.launch
 ~~~
 
-4. 確認  
+5. 確認  
+rvizのTF表示にて確認します。以下のツールでも確認できます。
 ~~~
 rosrun rqt_tf_tree rqt_tf_tree
 ~~~
@@ -44,7 +67,7 @@ rosrun rqt_tf_tree rqt_tf_tree
 
 ![tf tree](frames.png)
 
-## Operation  
+## 操作  
 ロボットキャリブレーションは、この図の"camera"フレームとそのベースフレーム(図中"J5"フレーム)の座標変換を求める、ことです。  
 次の手順にて行います。
 
@@ -66,17 +89,16 @@ rosrun rqt_tf_tree rqt_tf_tree
 5. 保存  
 解析結果のTransformは*ConfigTFパネル*の"カメラ/カメラマウント変換"に表示されています。誤差が妥当であれば「保存」ボタンを押してconfig_tf.yamlに書き込みます。
 6. 利用  
-このキャリブレーション結果を他のアプリケーションで利用するときには、そのアプリケーションのlaunchの最初でconfig_tfを起動するようにします。以下に例を示します。
-~~~
-  <rosparam command="load" file="$(find rovi_utils)/config_tf.yaml" />
-  <node pkg="rovi_utils" type="config_tf.py" name="config_tf" />
-~~~
-
+このキャリブレーション結果をそれぞれのパッケージ内のファイルに反映させるには、後述の起動オプションにてファイルを指定します。
 
 ## Appendix
+### 起動オプション
 
-launch後のTopicは以下のようにアサインされる。
+|タグ|デフォルト値|説明|
+|:----|:----|:----|
+|result|r-calib/rcalib.yaml|キャリブレーション結果Transformを書き出すyamlファイル名を与える|
 
+### Topics
 1. To subscribe
 
 |name|type|description|

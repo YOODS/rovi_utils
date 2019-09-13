@@ -1,0 +1,19 @@
+%YAML:1.0
+---
+n_circles_x: 11.
+n_circles_y: 16.
+origin_x: 5.
+origin_y: 8.
+unitleng: 12.
+distance_between_circles: 1.2
+n_circles_minimum: 9.
+min_rate: 0.25
+max_rate: 2.
+fitscore: 0.95
+fitrange: 1.5
+gamma_correction: 0.5
+do_equalize_hist: 0.
+do_smoothing: 1.
+bin_type: 1.
+bin_param0: 0.
+bin_param1: 0.

@@ -13,21 +13,12 @@ gridboard:
   n_circles_minimum: 9
   n_circles_x: 13
   n_circles_y: 18
-  origin_x: 7
+  origin_x: 6
   origin_y: 9
   torelance: 1.5
-  unitleng: 0.01
+  unitleng: 0.014
 rguide:
-  height: 100
-  width: 150
-  distance: [400, 500, 600]
-  rpy: [0,0,0, 40,0,0, 0,40,-10, -40,0,0, 0,-40,10]
-rovi:
-  live:
-    camera:
-      ExposureTime: 30000
-      Gain: 50
-      SoftwareTriggerRate: 4
-  pshift_genpc:
-    projector:
-      Mode: 1
+  height: 170
+  width: 240
+  distance: 400
+  zratio: 1.2

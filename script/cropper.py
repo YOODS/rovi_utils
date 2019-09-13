@@ -52,10 +52,9 @@ def voxel(data):
 def getRT(base,ref):
   try:
     ts=tfBuffer.lookup_transform(base,ref,rospy.Time())
-    pub_msg.publish("cropper::getRT::TF lookup success "+base+"->"+ref)
+    rospy.loginfo("cropper::getRT::TF lookup success "+base+"->"+ref)
     RT=tflib.toRT(ts.transform)
   except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
-    pub_msg.publish("cropper::getRT::TF lookup failure "+base+"->"+ref)
     RT=None
   return RT
 
@@ -71,7 +70,7 @@ def arrange(pc,n):
         RT=getRT(outc,capc)
         if RT is None:
           RT=np.eye(4)
-  print "arrange",RT
+          rospy.logwarn("cropper::arrange::TF not found")
   return np.dot(RT[:3],np.vstack((pc.T,np.ones((1,len(pc)))))).T
 
 def crop():
@@ -106,7 +105,6 @@ def cb_ps(msg): #callback of ps_floats
   srcArray.append(pc)
   raw()
   crop()
-  f=Bool();f.data=True;pub_capture.publish(f)
   return
 
 def cb_setcrop(msg):
@@ -153,7 +151,7 @@ def cb_clear(msg):
     pub_msg.publish("cropper::clear::lookup failure world->"+keep)
   raw()
   crop()
-  f=Bool();f.data=True;pub_clear.publish(f)
+  pub_clear.publish(mTrue)
 
 def cb_capture(msg):
   global tfArray
@@ -168,8 +166,11 @@ def cb_capture(msg):
     broadcaster.sendTransform(tfArray)
 #    rospy.loginfo("tf2 broadcast %s",tfArray[0].child_frame_id)
   except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
-    pub_msg.publish("cropper::capture::TF lookup failure world->"+keep)
-  pub_relay.publish(Bool())
+    rospy.loginfo("cropper::capture::TF lookup failure world->"+keep)
+  if pub_relay is not None: pub_relay.publish(mTrue)
+
+def cb_ansback(msg):
+  pub_capture.publish(msg)
 
 def parse_argv(argv):
   args={}
@@ -201,20 +202,26 @@ rospy.Subscriber("~in/floats",numpy_msg(Floats),cb_ps)
 rospy.Subscriber("~clear",Bool,cb_clear)
 rospy.Subscriber("~capture",Bool,cb_capture)
 rospy.Subscriber("~setcrop",Bool,cb_setcrop)
+if "ansback" in Config:
+  rospy.Subscriber(Config["ansback"],Bool,cb_ansback)
 ###Output topics
 pub_crop=rospy.Publisher("~out/floats",numpy_msg(Floats),queue_size=1)
 pub_raw=rospy.Publisher("~raw/floats",numpy_msg(Floats),queue_size=1)
-pub_relay=rospy.Publisher(Config["relay"],Bool,queue_size=1)
+pub_relay=None
+if "relay" in Config:
+  pub_relay=rospy.Publisher(Config["relay"],Bool,queue_size=1)
 pub_clear=rospy.Publisher("~cleared",Bool,queue_size=1)
 pub_capture=rospy.Publisher("~captured",Bool,queue_size=1)
 pub_msg=rospy.Publisher("/message",String,queue_size=1)
 
 ###Globals
+mTrue=Bool();mTrue.data=True
+mFalse=Bool();mFalse.data=False
 tfBuffer=tf2_ros.Buffer()
 listener=tf2_ros.TransformListener(tfBuffer)
 broadcaster=tf2_ros.StaticTransformBroadcaster()
 rospy.sleep(1)
-cb_clear(Bool())
+cb_clear(mTrue)
 
 try:
   rospy.spin()
