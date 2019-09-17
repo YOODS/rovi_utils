@@ -45,6 +45,7 @@ def np2F(d):  #numpy to Floats
 
 def cb_master(event):
   for n,l in enumerate(Config["scenes"]):
+    print "publish master",len(Model[n])
     if Model[n] is not None: pub_pcs[n].publish(np2F(Model[n]))
 
 def cb_save(msg):
@@ -167,6 +168,20 @@ def cb_solve_do(msg):
     tfAll.extend(tfSolve)
     broadcaster.sendTransform(tfAll)
   solveResult.pop("transform")   #to make cb_score publish other member but for "transform"
+  dist=[]
+  rot=[]
+  azimuth=[]
+  for rt in RTs:
+    R=rt[:3,:3]
+    T=rt[:3,3]
+    dist.append(np.linalg.norm(T))
+    vz=np.ravel(R.T[2]) #basis vector Z
+    azimuth.append(np.arccos(np.dot(vz,np.array([0,0,1]))))
+    vr,jac=cv2.Rodrigues(R)
+    rot.append(np.ravel(vr)[2])
+  solveResult["distance"]=dist
+  solveResult["azimuth"]=azimuth
+  solveResult["rotation"]=rot
   rospy.Timer(rospy.Duration(Config["tf_delay"]),cb_score,oneshot=True)
 
 def cb_ps(msg,n):

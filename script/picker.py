@@ -54,19 +54,22 @@ def cb_score(msg):
   except Exception as e:
     print "get_param exception:",e.args
   dstart=0
+  stats=""
+  judge=mTrue
   for n,sc in enumerate(msg.layout.dim):
     key=msg.layout.dim[n].label
     size=msg.layout.dim[n].size
+    val=np.asarray(msg.data[dstart:dstart+size])
+    dstart=dstart+size
+    if n>0: stats=stats+", "
+    stats=stats+key+":"+str(val)
     if key in Param:
       minval=Param[key]["min"]
       maxval=Param[key]["max"]
-      val=np.asarray(msg.data[dstart:dstart+size])
-      pub_msg.publish("picker::score of "+key+" "+str(minval)+" < "+str(val)+" < "+str(maxval))
       if val>maxval or val<minval:
-        pub_Y2.publish(mFalse)
-        return
-      dstart=dstart+size
-  pub_Y2.publish(mTrue)
+        judge=mFalse
+  pub_msg.publish("picker::score "+stats)
+  pub_Y2.publish(judge)
 
 def cb_collision(msg):
   wTs=getRT("camera/master0","camera/capture0/solve0")

@@ -23,7 +23,7 @@ from geometry_msgs.msg import TransformStamped
 from rovi_utils import tflib
 from scipy import optimize
 
-Param={"cropZ":1000,"cropR":1000,"mesh":1.0}
+Param={"cropZ":0,"cropR":0,"mesh":0.001,"ladle":0}
 Config={
   "relay":"/rovi/X1",
   "source_frame_id":"camera/capture",
@@ -74,18 +74,32 @@ def arrange(pc,n):
   return np.dot(RT[:3],np.vstack((pc.T,np.ones((1,len(pc)))))).T
 
 def crop():
-  print "cropper clear"
   pn=P0()
   cropZ=Param["cropZ"]
   cropR=Param["cropR"]
+  ladle=Param["ladle"]
   for n,pc in enumerate(srcArray):
     pt=pc.T
-    w1=np.where(pt[2]<cropZ)
-    w2=np.where(np.linalg.norm(pt[:2],axis=0)<cropR)
-    w=np.intersect1d(w1,w2)
-    pa=arrange(pc[w],n)
+    w1=None
+    if cropZ>0:
+      w1=np.where(pt[2]<cropZ)
+    w2=None
+    if cropR>0:
+      w2=np.where(np.linalg.norm(pt[:2],axis=0)<cropR)
+    if w1 is not None and w2 is not None:
+      w=np.intersect1d(w1,w2)
+      pa=arrange(pc[w],n)
+    elif w1 is not None:
+      pa=arrange(pc[w1],n)
+    elif w2 is not None:
+      pa=arrange(pc[w2],n)
+    else:
+      pa=arrange(pc,n)
     pn=np.vstack((pn,pa))
-  print "cropPn",pn.shape
+  if ladle>0 and len(pn)>ladle:
+    d=np.linalg.norm(pn,axis=1)
+    pn=pn[d.argsort(),:]
+    pn=pn[:ladle,:]
   pub_crop.publish(np2F(pn))
   return
 
@@ -94,7 +108,6 @@ def raw():
   for n,pc in enumerate(srcArray):
     pa=arrange(pc,n)
     pn=np.vstack((pn,pa))
-  print "rawPn",pn.shape
   pub_raw.publish(np2F(pn))
   return
 

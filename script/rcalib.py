@@ -41,7 +41,7 @@ def cb_X1(f):
   try:
     cTs=tfBuffer.lookup_transform(Config["camera_frame_id"], Config["board_frame_id"], rospy.Time())
   except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
-    pb_msg.publish("rcalib::gridboard lookup failed")
+    pb_err.publish("rcalib::gridboard lookup failed")
     done=Bool(); done.data=False; pb_Y1.publish(done)
     return
   try:
@@ -50,7 +50,7 @@ def cb_X1(f):
     else:
       bTm=tfBuffer.lookup_transform("world",Config["mount_frame_id"], rospy.Time())  #The camera mount may be attached on some link
   except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
-    pb_msg.publish("rcalib::robot lookup failed")
+    pb_err.publish("rcalib::robot lookup failed")
     done=Bool(); done.data=False; pb_Y1.publish(done)
     return
   tf=bTm.transform
@@ -84,7 +84,7 @@ def save_result(name):
       xTs=tflib.fromRTtoVec(np.dot(np.dot(bTm,mTc),cTs))
     Tcsv=np.vstack((Tcsv,xTs))
   Tn=map(np.linalg.norm,Tcsv.T[:3].T)
-  err=Float64(); err.data=max(Tn)-min(Tn); pb_err.publish(err)
+  err=Float64(); err.data=max(Tn)-min(Tn); pb_stats.publish(err)
   print "Calibration error:",err
   np.savetxt(name,Tcsv)
   return
@@ -171,7 +171,8 @@ except Exception as e:
 print "Config",Config
 
 pb_msg=rospy.Publisher('/message',String,queue_size=1)
-pb_err=rospy.Publisher('~error',Float64,queue_size=1)
+pb_err=rospy.Publisher('/error',String,queue_size=1)
+pb_stats=rospy.Publisher('~error',Float64,queue_size=1)
 pb_count=rospy.Publisher('~count',Int32,queue_size=1)
 pb_Y0=rospy.Publisher('~cleared',Bool,queue_size=1)    #X0 done
 pb_Y1=rospy.Publisher('~captured',Bool,queue_size=1)    #X1 done
