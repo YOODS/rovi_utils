@@ -6,18 +6,24 @@ import sys
 from geometry_msgs.msg import Transform
 from rovi_utils import tflib
 
-axes="rxyz"
+axes="1"
 unit="rad"
-#p=[-1,1,-1]
-#print tf.transformations.quaternion_from_euler(p[0],p[1],p[2],axes=axes)
 
 if len(sys.argv)>=2:
   axes=sys.argv[1]
 if len(sys.argv)>=3:
   unit=sys.argv[2]
 
-while True:
-  line=raw_input()
+try:
+  loop=int(axes)
+except Exception as e:
+  loop=-1
+
+while loop<0:
+  try:
+    line=raw_input()
+  except Exception as e:
+    break
   tokens=line.split(",")
   if len(tokens)==3:
     p=np.array(map(float,tokens))
@@ -35,3 +41,7 @@ while True:
     sys.stdout.write("\n")
     sys.stdout.flush()
 
+while loop>0:
+  q=tf.transformations.random_quaternion()
+  sys.stdout.write(str(q[0])+","+str(q[1])+","+str(q[2])+","+str(q[3])+"\n")
+  loop=loop-1
