@@ -123,7 +123,7 @@ def cb_load(msg):
   pub_loaded.publish(mTrue)
 
 def cb_notif(event):
-  ret=Bool();ret.data=True;pub_Y2.publish(ret)
+  pub_Y2.publish(mTrue)
 
 def cb_score(event):
   global solveResult,tfSolve
@@ -154,7 +154,12 @@ def cb_solve_do(msg):
   global solveResult,tfSolve
   solveResult=solver.solve(Scene,Param)
   RTs=solveResult["transform"]
-  pub_msg.publish("searcher::"+str(len(RTs))+" model searched")
+  if np.all(RTs[0]):
+    pub_err.publish("solver error")
+    pub_Y2.publish(mFalse)
+    return
+  else:
+    pub_msg.publish("searcher::"+str(len(RTs))+" model searched")
   tfSolve=[]
   if len(Config["solve_frame_id"])>0:
     for n,rt in enumerate(RTs):
