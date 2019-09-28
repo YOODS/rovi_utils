@@ -23,7 +23,7 @@ from geometry_msgs.msg import TransformStamped
 from rovi_utils import tflib
 from scipy import optimize
 
-Param={"cropZ":0,"cropR":0,"mesh":0.001,"ladle":0}
+Param={"cropZ":0,"cropR":0,"mesh":0.001,"ladle":0,"ladleW":0}
 Config={
   "relay":"/rovi/X1",
   "source_frame_id":"camera/capture",
@@ -58,6 +58,9 @@ def getRT(base,ref):
     RT=None
   return RT
 
+def pTr(RT,pc):
+  return np.dot(RT[:3],np.vstack((pc.T,np.ones((1,len(pc)))))).T
+
 def arrange(pc,n):
   capc=Config["source_frame_id"]
   outc=Config["frame_id"]
@@ -71,13 +74,14 @@ def arrange(pc,n):
         if RT is None:
           RT=np.eye(4)
           rospy.logwarn("cropper::arrange::TF not found")
-  return np.dot(RT[:3],np.vstack((pc.T,np.ones((1,len(pc)))))).T
+  return pTr(RT,pc)
 
 def crop():
   pn=P0()
   cropZ=Param["cropZ"]
   cropR=Param["cropR"]
   ladle=Param["ladle"]
+  ladleW=Param["ladleW"]
   for n,pc in enumerate(srcArray):
     pt=pc.T
     w1=None
@@ -100,6 +104,13 @@ def crop():
     d=np.linalg.norm(pn,axis=1)
     pn=pn[d.argsort(),:]
     pn=pn[:ladle,:]
+  if ladleW>0 and len(pn)>ladleW:
+    RT=getRT("world",Config["frame_id"])
+    pw=pTr(RT,pn)
+    d=pw.T[2]
+    pw=pw[np.ravel(d).argsort(),:]
+    pw=pw[len(pn)-ladleW:,:]
+    pn=pTr(np.linalg.inv(RT),pw)
   pub_crop.publish(np2F(pn))
   return
 

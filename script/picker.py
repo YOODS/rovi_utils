@@ -68,6 +68,7 @@ def cb_score(msg):
       maxval=Param[key]["max"]
       if val>maxval or val<minval:
         judge=mFalse
+        stats=stats+str("***")
   pub_msg.publish("picker::score "+stats)
   pub_Y2.publish(judge)
 
