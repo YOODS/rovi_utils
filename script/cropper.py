@@ -80,8 +80,8 @@ def crop():
   pn=P0()
   cropZ=Param["cropZ"]
   cropR=Param["cropR"]
-  ladle=Param["ladle"]
-  ladleW=Param["ladleW"]
+  ladle=Param["ladC"]
+  ladleW=Param["ladW"]
   for n,pc in enumerate(srcArray):
     pt=pc.T
     w1=None
