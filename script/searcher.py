@@ -228,6 +228,16 @@ def cb_busy(event):
   else:
     pub_busy.publish(f)
 
+def cb_dump(msg):
+#dump informations
+  for n,l in enumerate(Config["scenes"]):
+    if Scene[n] is None: continue
+    pc=o3d.PointCloud()
+    m=Scene[n]
+    if(len(m)==0): continue
+    pc.points=o3d.Vector3dVector(m)
+    o3d.write_point_cloud("/tmp/"+l+".ply",pc,True,False)
+
 def parse_argv(argv):
   args={}
   for arg in argv:
@@ -270,6 +280,7 @@ rospy.Subscriber("~solve",Bool,cb_solve)
 rospy.Subscriber("~save",Bool,cb_save)
 rospy.Subscriber("~load",Bool,cb_load)
 rospy.Subscriber("~redraw",Bool,cb_master)
+rospy.Subscriber("/searcher/dump",Bool,cb_dump)
 pub_msg=rospy.Publisher("/message",String,queue_size=1)
 pub_err=rospy.Publisher("/error",String,queue_size=1)
 
