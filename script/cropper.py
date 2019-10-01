@@ -43,7 +43,7 @@ def voxel(data):
   mesh=Param["mesh"]
   if mesh==0: return data
   if len(data)<10: return data
-  d=data.astype(np.float32)
+  d=np.asarray(data).astype(np.float32)
   pc=o3d.PointCloud()
   pc.points=o3d.Vector3dVector(d)
   dwpc=o3d.voxel_down_sample(pc,voxel_size=mesh)
@@ -82,6 +82,7 @@ def crop():
   cropR=Param["cropR"]
   ladle=Param["ladC"]
   ladleW=Param["ladW"]
+#camera cropping and merge points
   for n,pc in enumerate(srcArray):
     pt=pc.T
     w1=None
@@ -100,6 +101,8 @@ def crop():
     else:
       pa=arrange(pc,n)
     pn=np.vstack((pn,pa))
+#ladle cropping
+  pn=voxel(pn)
   if ladle>0 and len(pn)>ladle:
     d=np.linalg.norm(pn,axis=1)
     pn=pn[d.argsort(),:]
@@ -112,7 +115,7 @@ def crop():
     pw=pw[len(pn)-ladleW:,:]
     pn=pTr(np.linalg.inv(RT),pw)
   pub_crop.publish(np2F(pn))
-  return
+  return len(pn)
 
 def raw():
   pn=P0()
@@ -125,27 +128,11 @@ def raw():
 def cb_ps(msg): #callback of ps_floats
   global srcArray
   pc=np.reshape(msg.data,(-1,3))
-  pc=voxel(pc)
+#  pc=voxel(pc)
   srcArray.append(pc)
   raw()
   crop()
-  return
-
-def cb_setcrop(msg):
-  if len(srcArray)==0: return
-  pn=P0()
-  for pc in srcArray:
-    pn=np.vstack((pn,pc))
-  zcrop=np.mean(pn.T[2]) #+np.std(pn.T[2])
-  rad=np.linalg.norm(pn.T[:2],axis=0)
-  rcrop=np.mean(rad) #+np.std(rad)
-  try:
-    zval='{:.4e}'.format(zcrop)
-    rval='{:.4e}'.format(rcrop)
-    rospy.set_param('~cropZ',float(zval))
-    rospy.set_param('~cropR',float(rval))
-  except Exception as e:
-    print "exception",e
+  pub_capture.publish(mTrue)
   return
 
 def cb_param(msg):
@@ -194,7 +181,7 @@ def cb_capture(msg):
   if pub_relay is not None: pub_relay.publish(mTrue)
 
 def cb_ansback(msg):
-  pub_capture.publish(msg)
+  if msg.data is False: pub_capture.publish(mFalse)
 
 def parse_argv(argv):
   args={}
@@ -225,7 +212,6 @@ rospy.Timer(rospy.Duration(1),cb_param) #Param update itself
 rospy.Subscriber("~in/floats",numpy_msg(Floats),cb_ps)
 rospy.Subscriber("~clear",Bool,cb_clear)
 rospy.Subscriber("~capture",Bool,cb_capture)
-rospy.Subscriber("~setcrop",Bool,cb_setcrop)
 if "ansback" in Config:
   rospy.Subscriber(Config["ansback"],Bool,cb_ansback)
 ###Output topics
