@@ -16,8 +16,7 @@ from std_msgs.msg import Int32
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Transform
 from geometry_msgs.msg import TransformStamped
-from visp_hand2eye_calibration.srv import reset,resetRequest,resetResponse,compute_effector_camera_quick,compute_effector_camera_quickRequest,compute_effector_camera_quickResponse
-from visp_hand2eye_calibration.msg import TransformArray
+from rovi_utils import rcalib_solver as solver
 from rovi_utils import tflib
 
 Config={
@@ -25,16 +24,17 @@ Config={
   "camera_frame_id":"camera",
   "mount_frame_id":"mount",
   "flange_frame_id":"flange",
-  "board_frame_id":"gridboard"
+  "board_frame_id":"gridboard",
+  "weight":1
 }
 
 def cb_X0(f):
   global cTsAry,bTmAry
   print "cbX0"
   pb_msg.publish("rcalib::clear")
-  cTsAry=TransformArray()
-  bTmAry=TransformArray()
-  count=Int32(); count.data=len(cTsAry.transforms); pb_count.publish(count)
+  cTsAry=[]
+  bTmAry=[]
+  count=Int32(); count.data=len(cTsAry); pb_count.publish(count)
 
 def cb_X1(f):
   global cTsAry,bTmAry
@@ -54,17 +54,17 @@ def cb_X1(f):
     done=Bool(); done.data=False; pb_Y1.publish(done)
     return
   tf=bTm.transform
-  pb_msg.publish("rcalib::robot["+str(len(cTsAry.transforms))+"]=("+"%.4f"%tf.translation.x+", "+"%.4f"%tf.translation.y+", "+"%.4f"%tf.translation.z+",    "+"%.4f"%tf.rotation.x+", "+"%.4f"%tf.rotation.y+", "+"%.4f"%tf.rotation.z+", "+"%.4f"%tf.rotation.w+")")
-  cTsAry.transforms.append(cTs.transform)
-  bTmAry.transforms.append(bTm.transform)
+  pb_msg.publish("rcalib::robot["+str(len(cTsAry))+"]=("+"%.4f"%tf.translation.x+", "+"%.4f"%tf.translation.y+", "+"%.4f"%tf.translation.z+",    "+"%.4f"%tf.rotation.x+", "+"%.4f"%tf.rotation.y+", "+"%.4f"%tf.rotation.z+", "+"%.4f"%tf.rotation.w+")")
+  cTsAry.append(cTs.transform)
+  bTmAry.append(bTm.transform)
   done=Bool(); done.data=True; pb_Y1.publish(done)
-  count=Int32(); count.data=len(cTsAry.transforms); pb_count.publish(count)
+  count=Int32(); count.data=len(cTsAry); pb_count.publish(count)
   return
 
 def save_input(name):
-  print "save input",len(bTmAry.transforms),len(cTsAry.transforms)
+  print "save input",len(bTmAry),len(cTsAry)
   Tcsv=np.array([]).reshape((-1,14))
-  for M,S in zip(bTmAry.transforms,cTsAry.transforms):
+  for M,S in zip(bTmAry,cTsAry):
     btm=tflib.fromRTtoVec(tflib.toRT(M))
     cts=tflib.fromRTtoVec(tflib.toRT(S))
     alin=np.hstack((btm,cts))
@@ -72,95 +72,60 @@ def save_input(name):
   np.savetxt(name,Tcsv)
   return
 
-def save_result(name):
-  Tcsv=np.array([]).reshape((-1,7))
-  for M,S in zip(bTmAry.transforms,cTsAry.transforms):
-    cTs=tflib.toRT(S)
-    if Config["mount_frame_id"]=="world":
-      mTb=tflib.toRT(M).I
-      xTs=tflib.fromRTtoVec(np.dot(np.dot(mTb,mTc),cTs))
-    else:
-      bTm=tflib.toRT(M)
-      xTs=tflib.fromRTtoVec(np.dot(np.dot(bTm,mTc),cTs))
-    Tcsv=np.vstack((Tcsv,xTs))
-  Tn=map(np.linalg.norm,Tcsv.T[:3].T)
-  err=Float64(); err.data=max(Tn)-min(Tn); pb_stats.publish(err)
-  print "Calibration error:",err
-  np.savetxt(name,Tcsv)
-  return
+def error(mTc,M,P):
+  bT=np.array([]).reshape((3,-1))
+  bR=np.array([]).reshape((3,-1))
+  for m,p in zip(M,P):
+    bTm=tflib.toRTfromVec(m)
+    cTp=tflib.toRTfromVec(p)
+    bTp=np.dot(np.dot(bTm,mTc),cTp)
+    bT=np.hstack((bT,bTp[:3,3]))
+    rvec,jacob=cv2.Rodrigues(bTp[:3,:3])
+    bR=np.hstack((bR,rvec))
+  tcen=np.mean(bT,axis=1).reshape((3,1))
+  print "t-mean",tcen
+  terr=np.linalg.norm(bT-tcen,axis=0)
+  print "t-error mean/max",np.mean(terr),np.max(terr)
+  rcen=np.mean(bR,axis=1).reshape((3,1))
+  print "r-center",rcen
+  rerr=np.linalg.norm(bR-rcen,axis=0)
+  print "r-error mean/max",np.mean(rerr),np.max(rerr)
+  return np.max(terr),np.max(rerr)
 
 def set_param_tf(name,tf):
-  rospy.set_param(name+'/translation/x',tf.translation.x)
-  rospy.set_param(name+'/translation/y',tf.translation.y)
-  rospy.set_param(name+'/translation/z',tf.translation.z)
-  rospy.set_param(name+'/rotation/x',tf.rotation.x)
-  rospy.set_param(name+'/rotation/y',tf.rotation.y)
-  rospy.set_param(name+'/rotation/z',tf.rotation.z)
-  rospy.set_param(name+'/rotation/w',tf.rotation.w)
+  rospy.set_param(name,tflib.tf2dict(tf))
   return
 
 def call_visp():
-  global cTsAry,bTmAry,mTc
-  creset=None
+  global cTsAry,bTmAry,mTc,Terr,Rerr
+  poses=np.array([]).reshape((-1,7))
+  for tf in bTmAry:
+    if Config["mount_frame_id"] == "world":  #fixed camera
+      tf=tflib.inv(tf)
+    vec=tflib.fromRTtoVec(tflib.toRT(tf))
+    poses=np.vstack((poses,vec))
+  grids=np.array([]).reshape((-1,7))
+  for tf in cTsAry:
+    vec=tflib.fromRTtoVec(tflib.toRT(tf))
+    grids=np.vstack((grids,vec))
   try:
-    creset=rospy.ServiceProxy('/reset',reset)
-  except rospy.ServiceException, e:
-    print 'Visp reset failed:'+e
-    pb_msg.publish("rcalib::visp reset failed")
-    return
-  calibrator=None
-  try:  #solving as fixed camera
-    calibrator=rospy.ServiceProxy('/compute_effector_camera_quick',compute_effector_camera_quick)
-  except rospy.ServiceException, e:
-    print 'Visp call failed:'+e
-    pb_msg.publish("rcalib::visp call failed")
-    return
-  creset(resetRequest())
-  req=compute_effector_camera_quickRequest()
-  req.camera_object=cTsAry
-  if Config["mount_frame_id"] == "world":  #fixed camera
-    mTbAry=TransformArray()
-    for tf in bTmAry.transforms:
-      mTbAry.transforms.append(tflib.inv(tf))
-    req.world_effector=mTbAry
-    print "calib fixed"
-  else:
-    req.world_effector=bTmAry
-    print "calib handeye"
-  try:
-    res=calibrator(req)
-    print res.effector_camera
-    set_param_tf(Config["config_tf"]+"/"+Config["camera_frame_id"]+"/transform",res.effector_camera)
-    mTc=tflib.toRT(res.effector_camera)
-    pb_msg.publish("rcalib::visp solver success")
-  except rospy.ServiceException, e:
-    print 'Visp call failed:'+e
-    pb_msg.publish("rcalib::visp solver failed")
-  return
+    Config.update(rospy.get_param("~config"))
+  except Exception as e:
+    print "get_param exception:",e.args
+  solver.Weight=Config["weight"]
+  mTc=solver.solve(poses,grids)
+  mtc=tflib.fromRT(mTc)
+  set_param_tf(Config["config_tf"]+"/"+Config["camera_frame_id"]+"/transform",mtc)
+  pb_msg.publish("rcalib::visp solver success")
+  Terr,Rerr=error(mTc,poses,grids)
+  err=Float64(); err.data=Terr; pb_stats.publish(err)
 
 def cb_X2(f):
   global cTsAry,bTmAry
   save_input('rcalib_input.txt')
   call_visp()
-  save_result('rcalib_result.txt')
   return
 
-def cb_X3(f):
-  global cTsAry,bTmAry
-  print "X3"
-  Tcsv=np.loadtxt('input.txt')
-  bTmAry=TransformArray()
-  cTsAry=TransformArray()
-  for vec in Tcsv:
-#    bTmAry.transforms.append(xyz2quat(tflib.fromVec(vec[0:7])))
-    bTmAry.transforms.append(tflib.fromVec(vec[0:7]))
-    cTsAry.transforms.append(tflib.fromVec(vec[7:14]))
-  print bTmAry.transforms[0]
-  print cTsAry.transforms[0]
-  call_visp()
-  save_result_mTs('result_mts.txt')
-  save_result_bTs('result_bts.txt')
-  return
 
 ###############################################################
 rospy.init_node('rcalib',anonymous=True)
@@ -181,7 +146,6 @@ pb_Y2=rospy.Publisher('~solved',Bool,queue_size=1)    #X2 done
 rospy.Subscriber('~clear',Bool,cb_X0)
 rospy.Subscriber('~capture',Bool,cb_X1)
 rospy.Subscriber('~solve',Bool,cb_X2)
-rospy.Subscriber('~X3',Bool,cb_X3)
 
 cb_X0(Bool())
 

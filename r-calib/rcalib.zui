@@ -21,9 +21,4 @@
 "class":"Number", "label":"●間距離","name":"/gridboard/unitleng"
 "class":"Number", "label":"ガンマ補正","name":"/gridboard/gamma_correction"
 "class":"Pub",    "label":"反映","name":"/reload/gridboard"
-"class":"Title", "label":"ガイド設定"
-"class":"Number", "label":"ガイド幅(mm)","name":"/rguide/height"
-"class":"Number", "label":"ガイド高(mm)","name":"/rguide/width"
-"class":"Number", "label":"基準距離(mm)","name":"/rguide/distance"
-"class":"Number", "label":"Z-Ratio","name":"/rguide/zratio"
 
