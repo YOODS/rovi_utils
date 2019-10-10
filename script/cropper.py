@@ -142,9 +142,10 @@ def cb_param(msg):
     Param.update(rospy.get_param("~param"))
   except Exception as e:
     print "get_param exception:",e.args
-  if prm==Param: return
-  print "Param changed",Param
-  crop()
+  if prm!=Param:
+    print "Param changed",Param
+    crop()
+  rospy.Timer(rospy.Duration(1),cb_param,oneshot=True) #Param update itself
   return
 
 def cb_clear(msg):
@@ -206,8 +207,6 @@ except Exception as e:
   print "get_param exception:",e.args
 print "Param",Param
 
-rospy.Timer(rospy.Duration(1),cb_param) #Param update itself
-
 ###Input topics
 rospy.Subscriber("~in/floats",numpy_msg(Floats),cb_ps)
 rospy.Subscriber("~clear",Bool,cb_clear)
@@ -232,6 +231,8 @@ listener=tf2_ros.TransformListener(tfBuffer)
 broadcaster=tf2_ros.StaticTransformBroadcaster()
 rospy.sleep(1)
 cb_clear(mTrue)
+
+rospy.Timer(rospy.Duration(1),cb_param,oneshot=True) #Param update itself
 
 try:
   rospy.spin()

@@ -238,6 +238,19 @@ def cb_dump(msg):
     pc.points=o3d.Vector3dVector(m)
     o3d.write_point_cloud("/tmp/"+l+".ply",pc,True,False)
 
+def cb_param(msg):
+  global Param
+  prm=Param.copy()
+  try:
+    Param.update(rospy.get_param("~param"))
+  except Exception as e:
+    print "get_param exception:",e.args
+  if prm!=Param:
+    print "Param changed",Param
+    solver.learn(Model,Param)
+  rospy.Timer(rospy.Duration(1),cb_param,oneshot=True)
+  return
+
 def parse_argv(argv):
   args={}
   for arg in argv:
@@ -302,6 +315,7 @@ tfReg=[]
 tfSolve=[]
 
 rospy.Timer(rospy.Duration(5),cb_load,oneshot=True)
+rospy.Timer(rospy.Duration(1),cb_param,oneshot=True)
 try:
   rospy.spin()
 except KeyboardInterrupt:
