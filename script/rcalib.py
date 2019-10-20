@@ -25,7 +25,6 @@ Config={
   "mount_frame_id":"mount",
   "flange_frame_id":"flange",
   "board_frame_id":"gridboard",
-  "weight":1
 }
 
 def cb_X0(f):
@@ -108,9 +107,6 @@ def call_visp():
   for tf in cTsAry:
     vec=tflib.fromRTtoVec(tflib.toRT(tf))
     grids=np.vstack((grids,vec))
-  alen=np.linalg.norm(poses[:,:3],axis=1)
-  solver.Weight=np.mean(alen)
-  print "weight",solver.Weight
   mTc=solver.solve(poses,grids)
   mtc=tflib.fromRT(mTc)
   set_param_tf(Config["config_tf"]+"/"+Config["camera_frame_id"]+"/transform",mtc)

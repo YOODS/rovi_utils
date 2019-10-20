@@ -25,6 +25,9 @@ def fit_func(prm,M1,P1,M2,P2):
   return terr+Weight*(xerr+yerr+zerr)
 
 def solve(M,P):
+  alen=np.linalg.norm(M[:,:3],axis=1)
+  Weight=np.mean(alen)
+  print "weight",Weight
   mat=np.hstack((M,P))
   Cmat=np.asarray(list(itertools.combinations(mat,2)))
   Dat1=Cmat[:,0,:]
