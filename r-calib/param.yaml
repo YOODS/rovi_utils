@@ -1,24 +1,23 @@
 gridboard:
-  bin_param0: 0
-  bin_param1: 0
-  bin_type: 1
-  distance_between_circles: 1.2
+  do_reverse_bw: 0
   do_equalize_hist: 0
   do_smoothing: 1
-  fitrange: 1.5
-  fitscore: 0.95
+  bin_type: 1
+  bin_param0: 0
+  bin_param1: 0
   gamma_correction: 1.0
-  max_rate: 2.0
-  min_rate: 0.25
-  n_circles_minimum: 9
-  n_circles_x: 13
-  n_circles_y: 18
-  origin_x: 6
-  origin_y: 9
-  torelance: 1.5
-  unitleng: 0.014
+  fitscore: 0.95
+  max_radius: 100
+  min_radius: 5
+  n_minimum: 9
+  unitleng: 0.01
+  n_circles_x: 18
+  n_circles_y: 27
+  origin_x: 9
+  origin_y: 13
+  distance_between_circles: 1.2
 rguide:
-  height: 170
-  width: 240
   distance: 400
+  height: 190
+  width: 280
   zratio: 1.2
