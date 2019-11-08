@@ -1,21 +1,21 @@
 gridboard:
-  do_reverse_bw: 0
-  do_equalize_hist: 0
-  do_smoothing: 1
-  bin_type: 1
   bin_param0: 0
   bin_param1: 0
-  gamma_correction: 1.0
+  bin_type: 1
+  distance_between_circles: 1.2
+  do_equalize_hist: 0
+  do_reverse_bw: 1
+  do_smoothing: 1
   fitscore: 0.95
+  gamma_correction: 1
   max_radius: 100
   min_radius: 5
+  n_circles_x: 13
+  n_circles_y: 18
   n_minimum: 9
+  origin_x: 6
+  origin_y: 9
   unitleng: 0.01
-  n_circles_x: 18
-  n_circles_y: 27
-  origin_x: 9
-  origin_y: 13
-  distance_between_circles: 1.2
 rguide:
   distance: 400
   height: 190
