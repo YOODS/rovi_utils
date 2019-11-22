@@ -41,7 +41,10 @@ def solve(M,P):
   P1=Dat1[:,7:14].T
   M2=Dat2[:,:7].T
   P2=Dat2[:,7:14].T
-  result=optimize.leastsq(fit_func,[0,0,0,0,0,0],maxfev=10000,args=(M1,P1,M2,P2))
+  result=optimize.leastsq(fit_func,[0,0,0,1,1,1],args=(M1,P1,M2,P2))
+  if result[1]!=1:
+    print "rcalib_solver::scipy::optimize failed"
+    return None
   print "solve result",result
   R,jacob=cv2.Rodrigues(np.array(result[0])[3:6])
   T=np.array(result[0])[0:3].reshape((3,1))
