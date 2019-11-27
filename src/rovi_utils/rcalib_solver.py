@@ -3,6 +3,7 @@
 import cv2
 import numpy as np
 import tflib
+import copy
 from scipy import optimize
 import itertools
 
@@ -22,13 +23,17 @@ def fit_func(prm,M1,P1,M2,P2):
   xerr=np.linalg.norm(bTp1[:3,0]-bTp2[:3,0])
   yerr=np.linalg.norm(bTp1[:3,1]-bTp2[:3,1])
   zerr=np.linalg.norm(bTp1[:3,2]-bTp2[:3,2])
-  return terr+Weight*(xerr+yerr+zerr)
+  return terr+(xerr+yerr+zerr)
 
 def solve(M,P):
   alen=np.linalg.norm(M[:,:3],axis=1)
   Weight=np.mean(alen)
   print "weight",Weight
-  mat=np.hstack((M,P))
+  Mn=copy.copy(M)
+  Pn=copy.copy(P)
+  Mn[:,:3]=Mn[:,:3]/Weight
+  Pn[:,:3]=Pn[:,:3]/Weight
+  mat=np.hstack((Mn,Pn))
   Cmat=np.asarray(list(itertools.combinations(mat,2)))
   Dat1=Cmat[:,0,:]
   Dat2=Cmat[:,1,:]
@@ -45,8 +50,10 @@ def solve(M,P):
   if result[1]!=1:
     print "rcalib_solver::scipy::optimize failed"
     return None
+  result=np.asarray(result[0])
+  result[:3]=result[:3]*Weight
   print "solve result",result
-  R,jacob=cv2.Rodrigues(np.array(result[0])[3:6])
-  T=np.array(result[0])[0:3].reshape((3,1))
+  R,jacob=cv2.Rodrigues(result[3:6])
+  T=result[0:3].reshape((3,1))
   RT=np.vstack((np.hstack((R,T)),np.array([0,0,0,1]).reshape((1,4))))
   return RT
