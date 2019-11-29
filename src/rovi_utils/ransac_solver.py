@@ -30,6 +30,8 @@ def fromNumpy(dat):
 
 def _get_features(cloud):
   o3.estimate_normals(cloud, o3.KDTreeSearchParamHybrid(radius=Param["normal_radius"],max_nn=Param["normal_max_nn"]))
+  viewpoint=np.array([0.0,0.0,0.0],dtype=float)
+  o3.orient_normals_towards_camera_location(cloud, camera_location = viewpoint)
   return o3.compute_fpfh_feature(cloud, o3.KDTreeSearchParamHybrid(radius=Param["feature_radius"],max_nn=Param["feature_max_nn"]))
 
 def learn(datArray,prm):
