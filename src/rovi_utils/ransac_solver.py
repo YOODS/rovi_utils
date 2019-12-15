@@ -6,9 +6,8 @@ import copy
 import time
 
 Param={
-  "normal_max_nn":20,
   "normal_radius":0.01,
-  "feature_max_nn":200,
+  "feature_mesh":0,
   "feature_radius":0.025,
   'distance_threshold':0.001,
   'icp_threshold':0.0015
@@ -29,10 +28,13 @@ def fromNumpy(dat):
   return pc
 
 def _get_features(cloud):
-  o3.estimate_normals(cloud, o3.KDTreeSearchParamHybrid(radius=Param["normal_radius"],max_nn=Param["normal_max_nn"]))
+  o3.estimate_normals(cloud, o3.KDTreeSearchParamRadius(radius=Param["normal_radius"]))
+  cds=copy.deepcopy(cloud)
+  if Param["feature_mesh"]>0:
+    cds=o3.voxel_down_sample(cds,voxel_size=Param["feature_mesh"])
   viewpoint=np.array([0.0,0.0,0.0],dtype=float)
-  o3.orient_normals_towards_camera_location(cloud, camera_location = viewpoint)
-  return o3.compute_fpfh_feature(cloud, o3.KDTreeSearchParamHybrid(radius=Param["feature_radius"],max_nn=Param["feature_max_nn"]))
+  o3.orient_normals_towards_camera_location(cds, camera_location = viewpoint)
+  return cds,o3.compute_fpfh_feature(cds, o3.KDTreeSearchParamRadius(radius=Param["feature_radius"]))
 
 def learn(datArray,prm):
   global modFtArray,modPcArray,Param
@@ -50,13 +52,15 @@ def solve(datArray,prm):
   Param.update(prm)
   scnFtArray=[]
   scnPcArray=[]
+  t1=time.time()
   for dat in datArray:
     pc=fromNumpy(dat)
     scnPcArray.append(pc)
     scnFtArray.append(_get_features(pc))
+  print "time for calc feature",time.time()-t1
   t1=time.time()
   resft=o3.registration_ransac_based_on_feature_matching(
-    modPcArray[0],scnPcArray[0],modFtArray[0],scnFtArray[0],
+    modFtArray[0][0],scnFtArray[0][0],modFtArray[0][1],scnFtArray[0][1],
     Param["distance_threshold"],o3.TransformationEstimationPointToPoint(False),4,
     [o3.CorrespondenceCheckerBasedOnEdgeLength(0.9),
     o3.CorrespondenceCheckerBasedOnDistance(Param["distance_threshold"])],
@@ -67,7 +71,7 @@ def solve(datArray,prm):
     modPcArray[0],scnPcArray[0],
     Param["icp_threshold"],
     resft.transformation,o3.TransformationEstimationPointToPlane())
-  return {"transform":[resicp.transformation],"fitness":[resicp.fitness],"rmse":[resicp.inlier_rmse]}        
+  return {"transform":[resicp.transformation],"fitness":[resicp.fitness],"rmse":[resicp.inlier_rmse]}
 
 if __name__ == '__main__':
   print "Prepare model"
