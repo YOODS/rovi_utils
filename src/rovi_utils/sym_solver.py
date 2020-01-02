@@ -17,17 +17,14 @@ def fromNumpy(dat):
   pc=o3d.PointCloud()
   pc.points=o3d.Vector3dVector(d)
   return pc
-def transform(T,P):
-  return np.dot(T,np.vstack((P.T,np.ones((1,len(P)))))).T[:,:3]
-def getImmovTf(T,p0,thres):
-  p1=transform(T,p0)
-  pc0=fromNumpy(p0)
-  pc1=fromNumpy(p1)
-  reg=o3d.registration_icp(pc1,pc0,thres,np.eye(4,dtype=float),o3d.TransformationEstimationPointToPoint())
+def getImmovTf(T,pc0,thres):
+  pc1=copy.deepcopy(pc0)
+  pc1.transform(T)
+  reg=o3d.registration_icp(pc1,pc0,thres,np.eye(4,dtype=float),o3d.TransformationEstimationPointToPlane())
 #  print reg.fitness
 #  print reg.transformation
-  return np.dot(reg.transformation,T),p1
-def getwTx(N,P,thres):
+  return np.dot(reg.transformation,T)
+def getwTx(N,pcd,thres):
   wTx=[]
   wTx.append(np.eye(4,dtype=float))
   for i in range(1,N):
@@ -37,11 +34,12 @@ def getwTx(N,P,thres):
     wTwi=np.eye(4,dtype=float)
     wTwi[0,0]=cos;wTwi[0,1]=sin
     wTwi[1,0]=-sin;wTwi[1,1]=cos
-    wTxi,pcn=getImmovTf(wTwi,P,thres)
+    wTxi=getImmovTf(wTwi,pcd,thres)
     wTx.append(wTxi)
   return np.asarray(wTx)
 
-def solve(P0,num,thres):
+def solve(pcd,num,thres):
+  P0=toNumpy(pcd)
   g0=np.mean(P0,axis=0)
   sTw=np.eye(4,dtype=float)
   sTw[0,3]=g0[0]
@@ -49,9 +47,11 @@ def solve(P0,num,thres):
   sTw[2,3]=g0[2]
 
   for i in range(2): #iteration
-    Pw=transform(np.linalg.inv(sTw),P0)  #move points to axis center
-    wTx=getwTx(int(num),Pw,thres)
+    pcdw=copy.deepcopy(pcd)
+    pcdw.transform(np.linalg.inv(sTw))  #move points to axis center
+    wTx=getwTx(int(num),pcdw,thres)
     zbase=wTx[:,:,2][:,:3]
+    print "symmetry zbase",zbase
     zmean=np.mean(zbase,axis=0)
     zmean=zmean/np.linalg.norm(zmean)
     zcross=np.cross(wTx[0,:,2][:3],zmean)  #angle would be small enough to aproximate as sin

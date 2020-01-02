@@ -99,8 +99,8 @@ def cb_save(msg):
     tf.child_frame_id=m
     tfReg.append(tf)
   broadcaster.sendTransform(tfReg)
-  solver.learn(Model,Param)
-  solve_rot(Model[0],Param['rotate'],Param['icp_threshold'])
+  pcd=solver.learn(Model,Param)
+  solve_rot(pcd[0],Param['rotate'],Param['icp_threshold'])
   pub_msg.publish("searcher::master plys and frames saved")
   pub_saved.publish(mTrue)
 
@@ -137,8 +137,8 @@ def cb_load(msg):
       tfReg.append(tf)
   Param.update(rospy.get_param("~param"))
   print 'learning pc',Param['rotate']
-  solver.learn(Model,Param)
-  solve_rot(Model[0],Param['rotate'],Param['icp_threshold'])
+  pcd=solver.learn(Model,Param)
+  solve_rot(pcd[0],Param['rotate'],Param['icp_threshold'])
   broadcaster.sendTransform(tfReg)
   pub_msg.publish("searcher::model loaded and learning completed")
   pub_loaded.publish(mTrue)
