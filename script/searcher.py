@@ -22,9 +22,10 @@ from sensor_msgs.msg import PointCloud
 from geometry_msgs.msg import Transform
 from geometry_msgs.msg import TransformStamped
 from rovi_utils import tflib
+from rovi_utils import sym_solver as rotsym
 from scipy import optimize
 
-Param={'radius_normal':2.0,'radius_feature':5.0,'maxnn_normal':30,'maxnn_feature':100,'distance_threshold':1.5,'icp_threshold':5.0}
+Param={'radius_normal':2.0,'radius_feature':5.0,'maxnn_normal':30,'maxnn_feature':100,'distance_threshold':1.5,'icp_threshold':5.0,'rotate':0}
 Config={
   "path":"recipe",
   "scenes":["surface"],
@@ -42,6 +43,23 @@ def np2F(d):  #numpy to Floats
   f=Floats()
   f.data=np.ravel(d)
   return f
+
+def solve_rot(pc,num,thres):
+  global RotAxis,tfReg
+  RotAxis=None
+  if num>1:
+    RotAxis=rotsym.solve(pc,num,thres)
+    if len(RotAxis)>1:
+      tf=TransformStamped()
+      tf.header.stamp=rospy.Time.now()
+      tf.header.frame_id=Config["master_frame_id"][0]
+      tf.child_frame_id=Config["master_frame_id"][0]+'/axis'
+      tf.transform=tflib.fromRT(RotAxis[0])
+      tfReg.append(tf)
+    else:
+      RotAxis=None
+      print 'No axis'
+      pub_err.publish("searcher::No axis")
 
 def cb_master(event):
   for n,l in enumerate(Config["scenes"]):
@@ -81,12 +99,13 @@ def cb_save(msg):
     tf.child_frame_id=m
     tfReg.append(tf)
   broadcaster.sendTransform(tfReg)
-  solver.learn(Model,Param)
+  pcd=solver.learn(Model,Param)
+  solve_rot(pcd[0],Param['rotate'],Param['icp_threshold'])
   pub_msg.publish("searcher::master plys and frames saved")
   pub_saved.publish(mTrue)
 
 def cb_load(msg):
-  global Model,tfReg
+  global Model,tfReg,Param
 #load point cloud
   for n,l in enumerate(Config["scenes"]):
     pcd=o3d.read_point_cloud(Config["path"]+"/"+l+".ply")
@@ -116,9 +135,11 @@ def cb_load(msg):
       tf.child_frame_id=m
       tf.transform=trf
       tfReg.append(tf)
-  broadcaster.sendTransform(tfReg)
   Param.update(rospy.get_param("~param"))
-  solver.learn(Model,Param)
+  print 'learning pc',Param['rotate']
+  pcd=solver.learn(Model,Param)
+  solve_rot(pcd[0],Param['rotate'],Param['icp_threshold'])
+  broadcaster.sendTransform(tfReg)
   pub_msg.publish("searcher::model loaded and learning completed")
   pub_loaded.publish(mTrue)
 
@@ -160,6 +181,7 @@ def cb_solve_do(msg):
     return
   else:
     pub_msg.publish("searcher::"+str(len(RTs))+" model searched")
+
   tfSolve=[]
   if len(Config["solve_frame_id"])>0:
     for n,rt in enumerate(RTs):
@@ -167,11 +189,23 @@ def cb_solve_do(msg):
       tf.header.stamp=rospy.Time.now()
       tf.header.frame_id=Config["solve_frame_id"]
       tf.child_frame_id=Config["solve_frame_id"]+"/solve"+str(n)
-      tf.transform=tflib.fromRT(rt)
+      if RotAxis is not None:
+        wrt=[]
+        rot=[]
+        for n,wt in enumerate(RotAxis): #to minimumize the rotation
+          if n==0: wrt.append(rt)
+          else: wrt.append(np.dot(rt,wt))
+          R=wrt[n][:3,:3]
+          vr,jac=cv2.Rodrigues(R)
+          rot.append(abs(np.ravel(vr)[2]))
+        tf.transform=tflib.fromRT(wrt[np.argmin(np.asarray(rot))])
+      else:
+        tf.transform=tflib.fromRT(rt)
       tfSolve.append(tf)
     tfAll=copy.copy(tfReg)
     tfAll.extend(tfSolve)
     broadcaster.sendTransform(tfAll)
+
   solveResult.pop("transform")   #to make cb_score publish other member but for "transform"
   dist=[]
   rot=[]
@@ -311,6 +345,7 @@ broadcaster=tf2_ros.StaticTransformBroadcaster()
 ###data
 Scene=[None]*len(Config["scenes"])
 Model=[None]*len(Config["scenes"])
+RotAxis=None
 tfReg=[]
 tfSolve=[]
 

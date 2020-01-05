@@ -28,13 +28,12 @@ def fromNumpy(dat):
   return pc
 
 def _get_features(cloud):
-  o3.estimate_normals(cloud, o3.KDTreeSearchParamRadius(radius=Param["normal_radius"]))
-  cds=copy.deepcopy(cloud)
-  if Param["feature_mesh"]>0:
-    cds=o3.voxel_down_sample(cds,voxel_size=Param["feature_mesh"])
+  o3.estimate_normals(cloud,o3.KDTreeSearchParamRadius(radius=Param["normal_radius"]))
   viewpoint=np.array([0.0,0.0,0.0],dtype=float)
-  o3.orient_normals_towards_camera_location(cds, camera_location = viewpoint)
-  return cds,o3.compute_fpfh_feature(cds, o3.KDTreeSearchParamRadius(radius=Param["feature_radius"]))
+  o3.orient_normals_towards_camera_location(cloud, camera_location=viewpoint)
+  if Param["feature_mesh"]>0:
+    cds=o3.voxel_down_sample(cloud,voxel_size=Param["feature_mesh"])
+  return cds,o3.compute_fpfh_feature(cds,o3.KDTreeSearchParamRadius(radius=Param["feature_radius"]))
 
 def learn(datArray,prm):
   global modFtArray,modPcArray,Param
@@ -45,7 +44,7 @@ def learn(datArray,prm):
     pc=fromNumpy(dat)
     modPcArray.append(pc)
     modFtArray.append(_get_features(pc))
-  return
+  return modPcArray
 
 def solve(datArray,prm):
   global scnFtArray,scnPcArray,Param
