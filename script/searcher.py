@@ -25,7 +25,13 @@ from rovi_utils import tflib
 from rovi_utils import sym_solver as rotsym
 from scipy import optimize
 
-Param={'radius_normal':2.0,'radius_feature':5.0,'maxnn_normal':30,'maxnn_feature':100,'distance_threshold':1.5,'icp_threshold':5.0,'rotate':0}
+Param={
+  "normal_radius":0.003,
+  "feature_radius":0.01,
+  "normal_min_nn":25,
+  "distance_threshold":0.1,
+  "icp_threshold":0.001,
+  "rotate":0}
 Config={
   "path":"recipe",
   "scenes":["surface"],
@@ -33,8 +39,7 @@ Config={
   "scene_frame_id":[],
   "master_frame_id":[],
   "solve_frame_id":"",
-  "tf_delay": 0.1
-}
+  "tf_delay": 0.1}
 
 def P0():
   return np.array([]).reshape((-1,3))
@@ -44,7 +49,15 @@ def np2F(d):  #numpy to Floats
   f.data=np.ravel(d)
   return f
 
-def solve_rot(pc,num,thres):
+def learn_feat(mod,param):
+  n1=len(mod[0])
+  pcd=solver.learn(mod,param)
+  n2=len(pcd[0].points)
+  pub_msg.publish("searcher::noise reduced "+str(n1)+"->"+str(n2))
+  o3d.io.write_point_cloud("model.ply",pcd[0])
+  return pcd
+
+def learn_rot(pc,num,thres):
   global RotAxis,tfReg
   RotAxis=None
   if num>1:
@@ -99,8 +112,8 @@ def cb_save(msg):
     tf.child_frame_id=m
     tfReg.append(tf)
   broadcaster.sendTransform(tfReg)
-  pcd=solver.learn(Model,Param)
-  solve_rot(pcd[0],Param['rotate'],Param['icp_threshold'])
+  pcd=learn_feat(Model,Param)
+  learn_rot(pcd[0],Param['rotate'],Param['icp_threshold'])
   pub_msg.publish("searcher::master plys and frames saved")
   pub_saved.publish(mTrue)
 
@@ -137,8 +150,8 @@ def cb_load(msg):
       tfReg.append(tf)
   Param.update(rospy.get_param("~param"))
   print 'learning pc',Param['rotate']
-  pcd=solver.learn(Model,Param)
-  solve_rot(pcd[0],Param['rotate'],Param['icp_threshold'])
+  pcd=learn_feat(Model,Param)
+  learn_rot(pcd[0],Param['rotate'],Param['icp_threshold'])
   broadcaster.sendTransform(tfReg)
   pub_msg.publish("searcher::model loaded and learning completed")
   pub_loaded.publish(mTrue)
@@ -281,7 +294,7 @@ def cb_param(msg):
     print "get_param exception:",e.args
   if prm!=Param:
     print "Param changed",Param
-    solver.learn(Model,Param)
+    learn_feat(Model,Param)
   rospy.Timer(rospy.Duration(1),cb_param,oneshot=True)
   return
 

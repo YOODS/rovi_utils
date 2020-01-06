@@ -51,7 +51,7 @@ def solve(pcd,num,thres):
     pcdw.transform(np.linalg.inv(sTw))  #move points to axis center
     wTx=getwTx(int(num),pcdw,thres)
     zbase=wTx[:,:,2][:,:3]
-    print "symmetry zbase",zbase
+#    print "symmetry zbase",zbase
     zmean=np.mean(zbase,axis=0)
     zmean=zmean/np.linalg.norm(zmean)
     zcross=np.cross(wTx[0,:,2][:3],zmean)  #angle would be small enough to aproximate as sin

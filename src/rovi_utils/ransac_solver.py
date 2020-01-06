@@ -7,6 +7,7 @@ import time
 
 Param={
   "normal_radius":0.01,
+  "normal_min_nn":25,
   "feature_mesh":0,
   "feature_radius":0.025,
   'distance_threshold':0.001,
@@ -31,6 +32,12 @@ def _get_features(cloud):
   o3.estimate_normals(cloud,o3.KDTreeSearchParamRadius(radius=Param["normal_radius"]))
   viewpoint=np.array([0.0,0.0,0.0],dtype=float)
   o3.orient_normals_towards_camera_location(cloud, camera_location=viewpoint)
+  flann=o3.geometry.KDTreeFlann(cloud)
+  counts=map(lambda p: flann.search_radius_vector_3d(p,radius=Param["normal_radius"])[0],cloud.points)
+  cpn=np.hstack((np.asarray([counts]).T,np.asarray(cloud.points),np.asarray(cloud.normals)))
+  cpn=np.asarray(filter(lambda x: x[0]>Param["normal_min_nn"],cpn))
+  cloud.points=o3.Vector3dVector(cpn[:,1:4])
+  cloud.normals=o3.Vector3dVector(cpn[:,4:7])
   if Param["feature_mesh"]>0:
     cds=o3.voxel_down_sample(cloud,voxel_size=Param["feature_mesh"])
   return cds,o3.compute_fpfh_feature(cds,o3.KDTreeSearchParamRadius(radius=Param["feature_radius"]))
