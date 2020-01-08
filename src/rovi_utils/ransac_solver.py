@@ -38,6 +38,7 @@ def _get_features(cloud):
   cpn=np.asarray(filter(lambda x: x[0]>Param["normal_min_nn"],cpn))
   cloud.points=o3.Vector3dVector(cpn[:,1:4])
   cloud.normals=o3.Vector3dVector(cpn[:,4:7])
+  cds=cloud
   if Param["feature_mesh"]>0:
     cds=o3.voxel_down_sample(cloud,voxel_size=Param["feature_mesh"])
   return cds,o3.compute_fpfh_feature(cds,o3.KDTreeSearchParamRadius(radius=Param["feature_radius"]))
