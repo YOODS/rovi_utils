@@ -23,7 +23,7 @@ from geometry_msgs.msg import TransformStamped
 from rovi_utils import tflib
 from scipy import optimize
 
-Param={"cropZ":0,"cropR":0,"mesh":0.001,"ladle":0,"ladleW":0}
+Param={"cropZ":0,"cropR":0,"mesh":0.001,"ladle":0,"ladleW":0,"nfrad":0,"nfmin":0}
 Config={
   "relay":"/rovi/X1",
   "source_frame_id":"camera/capture",
@@ -44,9 +44,19 @@ def voxel(data):
   if mesh==0: return data
   if len(data)<10: return data
   d=np.asarray(data).astype(np.float32)
-  pc=o3d.PointCloud()
-  pc.points=o3d.Vector3dVector(d)
-  dwpc=o3d.voxel_down_sample(pc,voxel_size=mesh)
+  pc=o3d.geometry.PointCloud()
+  pc.points=o3d.utility.Vector3dVector(d)
+  dwpc=o3d.geometry.voxel_down_sample(pc,voxel_size=mesh)
+  return np.reshape(np.asarray(dwpc.points),(-1,3))
+
+def nf(data):
+  d=np.asarray(data).astype(np.float32)
+  pc=o3d.geometry.PointCloud()
+  pc.points=o3d.utility.Vector3dVector(d)
+  nfmin=Param["nfmin"]
+  if nfmin<=0: nfmin=1
+  cl,ind=o3d.geometry.radius_outlier_removal(pc,nb_points=nfmin,radius=Param["nfrad"])
+  dwpc=o3d.geometry.select_down_sample(pc,ind)
   return np.reshape(np.asarray(dwpc.points),(-1,3))
 
 def getRT(base,ref):
@@ -114,6 +124,8 @@ def crop():
     pw=pw[np.ravel(d).argsort(),:]
     pw=pw[len(pn)-ladleW:,:]
     pn=pTr(np.linalg.inv(RT),pw)
+#Noise eliminator
+  if Param["nfrad"]>Param["mesh"]: pn=nf(pn)
   pub_crop.publish(np2F(pn))
   return len(pn)
 
@@ -122,7 +134,7 @@ def raw():
   for n,pc in enumerate(srcArray):
     pa=arrange(pc,n)
     pn=np.vstack((pn,pa))
-  pub_raw.publish(np2F(pn))
+#  pub_raw.publish(np2F(pn))
   return
 
 def cb_ps(msg): #callback of ps_floats
