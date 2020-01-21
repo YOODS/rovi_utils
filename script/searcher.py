@@ -33,13 +33,12 @@ Param={
   "icp_threshold":0.001,
   "rotate":0}
 Config={
+  "proc":0,
   "path":"recipe",
   "scenes":["surface"],
   "solver":"o3d_solver",
   "scene_frame_id":[],
-  "master_frame_id":[],
-  "solve_frame_id":"",
-  "tf_delay": 0.1}
+  "master_frame_id":[]}
 
 def P0():
   return np.array([]).reshape((-1,3))
@@ -54,7 +53,7 @@ def learn_feat(mod,param):
   pcd=solver.learn(mod,param)
   n2=len(pcd[0].points)
   pub_msg.publish("searcher::noise reduced "+str(n1)+"->"+str(n2))
-  o3d.io.write_point_cloud("model.ply",pcd[0])
+  if Config["proc"]==0: o3d.io.write_point_cloud("/tmp/model.ply",pcd[0])
   return pcd
 
 def learn_rot(pc,num,thres):
@@ -111,7 +110,7 @@ def cb_save(msg):
     f.close()
     tf.child_frame_id=m
     tfReg.append(tf)
-  broadcaster.sendTransform(tfReg)
+  if Config["proc"]==0: broadcaster.sendTransform(tfReg)
   pcd=learn_feat(Model,Param)
   learn_rot(pcd[0],Param['rotate'],Param['icp_threshold'])
   pub_msg.publish("searcher::master plys and frames saved")
@@ -123,7 +122,7 @@ def cb_load(msg):
   for n,l in enumerate(Config["scenes"]):
     pcd=o3d.read_point_cloud(Config["path"]+"/"+l+".ply")
     Model[n]=np.reshape(np.asarray(pcd.points),(-1,3))
-  rospy.Timer(rospy.Duration(Config["tf_delay"]),cb_master,oneshot=True)
+  if Config["proc"]==0: rospy.Timer(rospy.Duration(0.1),cb_master,oneshot=True)
   tfReg=[]
 #load TF such as master/camera...
   for m in Config["master_frame_id"]:
@@ -152,16 +151,12 @@ def cb_load(msg):
   print 'learning pc',Param['rotate']
   pcd=learn_feat(Model,Param)
   learn_rot(pcd[0],Param['rotate'],Param['icp_threshold'])
-  broadcaster.sendTransform(tfReg)
+  if Config["proc"]==0: broadcaster.sendTransform(tfReg)
   pub_msg.publish("searcher::model loaded and learning completed")
   pub_loaded.publish(mTrue)
 
-def cb_notif(event):
-  pub_Y2.publish(mTrue)
-
-def cb_score(event):
-  global solveResult,tfSolve
-  cb_master(event)
+def cb_score():
+  global solveResult
   score=Float32MultiArray()
   score.layout.data_offset=0
   for n,sc in enumerate(solveResult):
@@ -171,21 +166,22 @@ def cb_score(event):
     score.layout.dim[n].stride=1
     score.data.extend(solveResult[sc])
   pub_score.publish(score)
-  rospy.Timer(rospy.Duration(Config["tf_delay"]),cb_notif,oneshot=True)
+  pub_Y2.publish(mTrue)
+  if Config["proc"]==0: rospy.Timer(rospy.Duration(0.1),cb_master,oneshot=True)
 
 def cb_solve(msg):
-  global solveResult,tfSolve
+  global solveResult
   if [x for x in Scene if x is None]:
     pub_msg.publish("searcher::short scene data")
     ret=Bool();ret.data=False;pub_Y2.publish(ret)
     return
   Param.update(rospy.get_param("~param"))
   solveResult=None
-  cb_busy(True)
+  cb_busy(mTrue)
   rospy.Timer(rospy.Duration(0.01),cb_solve_do,oneshot=True)
 
 def cb_solve_do(msg):
-  global solveResult,tfSolve
+  global solveResult
   solveResult=solver.solve(Scene,Param)
   RTs=solveResult["transform"]
   if np.all(RTs[0]):
@@ -195,35 +191,42 @@ def cb_solve_do(msg):
   else:
     pub_msg.publish("searcher::"+str(len(RTs))+" model searched")
 
-  tfSolve=[]
-  if len(Config["solve_frame_id"])>0:
-    for n,rt in enumerate(RTs):
-      tf=TransformStamped()
-      tf.header.stamp=rospy.Time.now()
-      tf.header.frame_id=Config["solve_frame_id"]
-      tf.child_frame_id=Config["solve_frame_id"]+"/solve"+str(n)
-      if RotAxis is not None:
-        wrt=[]
-        rot=[]
-        for n,wt in enumerate(RotAxis): #to minimumize the rotation
-          if n==0: wrt.append(rt)
-          else: wrt.append(np.dot(rt,wt))
-          R=wrt[n][:3,:3]
-          vr,jac=cv2.Rodrigues(R)
-          rot.append(abs(np.ravel(vr)[2]))
-        tf.transform=tflib.fromRT(wrt[np.argmin(np.asarray(rot))])
-      else:
-        tf.transform=tflib.fromRT(rt)
-      tfSolve.append(tf)
-    tfAll=copy.copy(tfReg)
-    tfAll.extend(tfSolve)
-    broadcaster.sendTransform(tfAll)
+  Tx=[]
+  Ty=[]
+  Tz=[]
+  Qx=[]
+  Qy=[]
+  Qz=[]
+  Qw=[]
+  for n,rt in enumerate(RTs):
+    tf=Transform()
+    if RotAxis is not None:
+      wrt=[]
+      rot=[]
+      for n,wt in enumerate(RotAxis): #to minimumize the rotation
+        if n==0: wrt.append(rt)
+        else: wrt.append(np.dot(rt,wt))
+        R=wrt[n][:3,:3]
+        vr,jac=cv2.Rodrigues(R)
+        rot.append(abs(np.ravel(vr)[2]))
+      tf=tflib.fromRT(wrt[np.argmin(np.asarray(rot))])
+    else:
+      tf=tflib.fromRT(rt)
+    Tx.append(tf.translation.x)
+    Ty.append(tf.translation.y)
+    Tz.append(tf.translation.z)
+    Qx.append(tf.rotation.x)
+    Qy.append(tf.rotation.y)
+    Qz.append(tf.rotation.z)
+    Qw.append(tf.rotation.w)
 
   solveResult.pop("transform")   #to make cb_score publish other member but for "transform"
+  proc=[]
   dist=[]
   rot=[]
   azimuth=[]
   for rt in RTs:
+    proc.append(Config["proc"])
     R=rt[:3,:3]
     T=rt[:3,3]
     dist.append(np.linalg.norm(T))
@@ -231,10 +234,18 @@ def cb_solve_do(msg):
     azimuth.append(np.arccos(np.dot(vz,np.array([0,0,1]))))
     vr,jac=cv2.Rodrigues(R)
     rot.append(np.ravel(vr)[2])
+  solveResult["proc"]=proc
+  solveResult["Tx"]=Tx
+  solveResult["Ty"]=Ty
+  solveResult["Tz"]=Tz
+  solveResult["Qx"]=Qx
+  solveResult["Qy"]=Qy
+  solveResult["Qz"]=Qz
+  solveResult["Qw"]=Qw
   solveResult["distance"]=dist
   solveResult["azimuth"]=azimuth
   solveResult["rotation"]=rot
-  rospy.Timer(rospy.Duration(Config["tf_delay"]),cb_score,oneshot=True)
+  cb_score()
 
 def cb_ps(msg,n):
   global Scene
@@ -242,38 +253,20 @@ def cb_ps(msg,n):
   Scene[n]=pc
   print "cb_ps",pc.shape
 
-def cb_tfreset(event):
-  global tfSolve
-  tfSolve=[]
-  broadcaster.sendTransform(tfReg)
 
 def cb_clear(msg):
-  global Scene,tfSolve
+  global Scene
   for n,l in enumerate(Config["scenes"]):
     Scene[n]=None
-  tfAll=copy.copy(tfReg)
-  for tf in tfSolve:
-    tf.transform.translation.x=0
-    tf.transform.translation.y=0
-    tf.transform.translation.z=1000000
-    tf.transform.rotation.x=0
-    tf.transform.rotation.y=0
-    tf.transform.rotation.z=0
-    tf.transform.rotation.w=1
-    tfAll.append(tf)
-  broadcaster.sendTransform(tfAll)
-  rospy.Timer(rospy.Duration(0.1),cb_tfreset,oneshot=True)
-  rospy.Timer(rospy.Duration(0.2),cb_master,oneshot=True)
+  if Config["proc"]==0: rospy.Timer(rospy.Duration(0.1),cb_master,oneshot=True)
 
 def cb_busy(event):
   global solveResult
-  f=Bool()
   if solveResult is None:
-    f.data=True
-    pub_busy.publish(f)
+    pub_busy.publish(mTrue)
     rospy.Timer(rospy.Duration(0.5),cb_busy,oneshot=True)
   else:
-    pub_busy.publish(f)
+    pub_busy.publish(mFalse)
 
 def cb_dump(msg):
 #dump informations
@@ -337,10 +330,10 @@ pub_loaded=rospy.Publisher("~loaded",Bool,queue_size=1)
 pub_score=rospy.Publisher("~score",Float32MultiArray,queue_size=1)
 rospy.Subscriber("~clear",Bool,cb_clear)
 rospy.Subscriber("~solve",Bool,cb_solve)
-rospy.Subscriber("~save",Bool,cb_save)
+if Config["proc"]==0: rospy.Subscriber("~save",Bool,cb_save)
 rospy.Subscriber("~load",Bool,cb_load)
-rospy.Subscriber("~redraw",Bool,cb_master)
-rospy.Subscriber("/searcher/dump",Bool,cb_dump)
+if Config["proc"]==0: rospy.Subscriber("~redraw",Bool,cb_master)
+if Config["proc"]==0: rospy.Subscriber("/searcher/dump",Bool,cb_dump)
 pub_msg=rospy.Publisher("/message",String,queue_size=1)
 pub_err=rospy.Publisher("/error",String,queue_size=1)
 
@@ -360,7 +353,6 @@ Scene=[None]*len(Config["scenes"])
 Model=[None]*len(Config["scenes"])
 RotAxis=None
 tfReg=[]
-tfSolve=[]
 
 rospy.Timer(rospy.Duration(5),cb_load,oneshot=True)
 rospy.Timer(rospy.Duration(1),cb_param,oneshot=True)
