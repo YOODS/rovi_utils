@@ -8,6 +8,7 @@ import tf2_ros
 import copy
 import os
 import sys
+import functools
 from std_msgs.msg import Bool
 from std_msgs.msg import String
 from geometry_msgs.msg import Transform
@@ -25,6 +26,9 @@ Param={
 }
 
 Stats={}
+
+def cb_redraw(event):
+  pub_Y1.publish(mTrue)
 
 def cb_stats():
   global Stats
@@ -60,6 +64,7 @@ def cb_stats():
   broadcaster.sendTransform([tf])
   pub_msg.publish("picker::score "+stats)
   pub_Y2.publish(judge)
+  rospy.Timer(rospy.Duration(0.1),cb_redraw,oneshot=True)
   Stats={}
 
 def cb_score(msg):
@@ -114,6 +119,7 @@ except Exception as e:
 ###Topics Service
 rospy.Subscriber("~clear",Bool,cb_clear)
 rospy.Subscriber("~score",Float32MultiArray,cb_score)
+pub_Y1=rospy.Publisher("~redraw",Bool,queue_size=1)
 pub_Y2=rospy.Publisher("~solved",Bool,queue_size=1)
 pub_msg=rospy.Publisher("/message",String,queue_size=1)
 

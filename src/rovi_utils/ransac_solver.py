@@ -10,8 +10,9 @@ Param={
   "normal_min_nn":25,
   "feature_mesh":0,
   "feature_radius":0.025,
-  'distance_threshold':0.001,
-  'icp_threshold':0.0015
+  "distance_threshold":0.001,
+  "icp_threshold":0.0015,
+  "repeat":1
 }
 
 modFtArray=[]
@@ -66,19 +67,24 @@ def solve(datArray,prm):
     scnFtArray.append(_get_features(pc))
   print "time for calc feature",time.time()-t1
   t1=time.time()
-  resft=o3.registration_ransac_based_on_feature_matching(
-    modFtArray[0][0],scnFtArray[0][0],modFtArray[0][1],scnFtArray[0][1],
-    Param["distance_threshold"],o3.TransformationEstimationPointToPoint(False),4,
-    [o3.CorrespondenceCheckerBasedOnEdgeLength(0.9),
-    o3.CorrespondenceCheckerBasedOnDistance(Param["distance_threshold"])],
-    o3.RANSACConvergenceCriteria(2000000, 500))
+
+  score={"transform":[],"fitness":[],"rmse":[]}
+  for n in range(Param["repeat"]):
+    resft=o3.registration_ransac_based_on_feature_matching(
+      modFtArray[0][0],scnFtArray[0][0],modFtArray[0][1],scnFtArray[0][1],Param["distance_threshold"],
+      estimation_method=o3.TransformationEstimationPointToPlane(),
+      ransac_n=4,
+      checkers=[],
+      criteria=o3.RANSACConvergenceCriteria(max_iteration=100000,max_validation=1000))
+    resicp=o3.registration_icp(
+      modPcArray[0],scnPcArray[0],
+      Param["icp_threshold"],
+      resft.transformation,o3.TransformationEstimationPointToPlane())
+    score["transform"].append(resicp.transformation)
+    score["fitness"].append(resicp.fitness)
+    score["rmse"].append(resicp.inlier_rmse)
   print "time for feature matching",time.time()-t1
-  print "feature matching",resft.transformation,resft.fitness
-  resicp=o3.registration_icp(
-    modPcArray[0],scnPcArray[0],
-    Param["icp_threshold"],
-    resft.transformation,o3.TransformationEstimationPointToPlane())
-  return {"transform":[resicp.transformation],"fitness":[resicp.fitness],"rmse":[resicp.inlier_rmse]}
+  return score
 
 if __name__ == '__main__':
   print "Prepare model"
