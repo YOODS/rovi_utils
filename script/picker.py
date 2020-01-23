@@ -36,12 +36,17 @@ def cb_stats():
     Param.update(rospy.get_param("~param"))
   except Exception as e:
     print "get_param exception:",e.args
-  rospy.loginfo("picker::fitness "+str(Stats["fitness"])+" distance "+str(Stats["distance"]))
-  maxfit=np.argmax(Stats["fitness"])
+  rospy.loginfo("picker::fitness "+str(Stats["fitness"])+" distance "+str(Stats["Tz"]))
+  wfit=np.where(Stats["fitness"]>Param["fitness"]["min"])
+  if len(wfit[0])>0:
+    amin=np.argmin(Stats["Tz"][wfit])
+    pick=wfit[0][amin]
+  else:
+    pick=np.argmin(Stats["Tz"])
   stats=""
   judge=mTrue
   for key in Stats:
-    val=Stats[key][maxfit]
+    val=Stats[key][pick]
     if key in Param:
       if len(stats)>0: stats=stats+","
       stats=stats+key+":"+str(val)
@@ -54,13 +59,13 @@ def cb_stats():
   tf.header.stamp=rospy.Time.now()
   tf.header.frame_id=Config["solve_frame_id"]
   tf.child_frame_id=Config["solve_frame_id"]+"/solve0"
-  tf.transform.translation.x=Stats["Tx"][maxfit]
-  tf.transform.translation.y=Stats["Ty"][maxfit]
-  tf.transform.translation.z=Stats["Tz"][maxfit]
-  tf.transform.rotation.x=Stats["Qx"][maxfit]
-  tf.transform.rotation.y=Stats["Qy"][maxfit]
-  tf.transform.rotation.z=Stats["Qz"][maxfit]
-  tf.transform.rotation.w=Stats["Qw"][maxfit]
+  tf.transform.translation.x=Stats["Tx"][pick]
+  tf.transform.translation.y=Stats["Ty"][pick]
+  tf.transform.translation.z=Stats["Tz"][pick]
+  tf.transform.rotation.x=Stats["Qx"][pick]
+  tf.transform.rotation.y=Stats["Qy"][pick]
+  tf.transform.rotation.z=Stats["Qz"][pick]
+  tf.transform.rotation.w=Stats["Qw"][pick]
   broadcaster.sendTransform([tf])
   pub_msg.publish("picker::score "+stats)
   pub_Y2.publish(judge)
