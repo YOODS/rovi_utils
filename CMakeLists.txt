@@ -10,6 +10,11 @@ find_package(catkin REQUIRED COMPONENTS
   rovi
 )
 
+add_service_files(
+  FILES
+  TextFilter.srv
+)
+
 catkin_python_setup()
 
 catkin_package(
