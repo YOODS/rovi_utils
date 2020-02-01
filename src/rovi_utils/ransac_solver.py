@@ -72,7 +72,7 @@ def solve(datArray,prm):
   for n in range(Param["repeat"]):
     resft=o3.registration_ransac_based_on_feature_matching(
       modFtArray[0][0],scnFtArray[0][0],modFtArray[0][1],scnFtArray[0][1],Param["distance_threshold"],
-      estimation_method=o3.TransformationEstimationPointToPlane(),
+      estimation_method=o3.TransformationEstimationPointToPoint(with_scaling=False),
       ransac_n=4,
       checkers=[],
       criteria=o3.RANSACConvergenceCriteria(max_iteration=100000,max_validation=1000))
