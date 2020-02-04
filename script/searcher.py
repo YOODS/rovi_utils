@@ -31,10 +31,10 @@ Param={
   "normal_min_nn":25,
   "distance_threshold":0.1,
   "icp_threshold":0.001,
-  "rotate":0}
+  "rotate":0,
+  "repeat":1}
 Config={
   "proc":0,
-  "repeat":1,
   "path":"recipe",
   "scenes":["surface"],
   "solver":"o3d_solver",
@@ -196,7 +196,6 @@ def cb_solve(msg):
 
 def cb_solve_do(msg):
   global Score
-  Param["repeat"]=Config["repeat"]
   result=solver.solve(Scene,Param)
   RTs=result["transform"]
   if np.all(RTs[0]):
