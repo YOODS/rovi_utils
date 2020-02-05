@@ -93,6 +93,8 @@ def error(mTc,M,P):
 
 def set_param_tf(name,tf):
   rospy.set_param(name,tflib.tf2dict(tf))
+  if "copy" in Config:
+    rospy.set_param(Config["copy"],tflib.tf2dict(tf))
   return
 
 def call_visp():
