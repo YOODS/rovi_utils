@@ -38,26 +38,34 @@ def quat_to_euler(toks):
 def query(req):
   global axes,unit
   res=TextFilterResponse()
-  msg=req.in_
-  if ',' in msg:
+  msgs=req.data.strip().split('\n')
+  for msg in msgs:
     elm=msg.split(',')
-    if len(elm)==3:
+    if len(elm)==1:
+      elm=msg.split(' ')
+      elm=[a for a in elm if len(a)>0]
+    if len(elm)==1:  #set axes
+      axes=elm[0]
+      resadd='ok'
+    elif len(elm)==2: #set axes and unit of angle
+      axes=elm[0]
+      unit=elm[1]
+      resadd='ok'
+    elif len(elm)==3: #euler(3)->quat(4)
       q=euler_to_quat(elm)
-      res.out=','.join(map(str,q))
-    elif len(elm)==4:
+      resadd=','.join(map(str,q))
+    elif len(elm)==4: #quat(4)->euler(3)
       e=quat_to_euler(elm)
-      res.out=','.join(map(str,e))
-  else:
-    arg=msg.split(' ')
-    if len(arg)==1:
-      if len(arg)>0: axes=arg[0]
-    elif len(arg)==2:
-      axes=arg[0]
-      unit=arg[1]
+      resadd=','.join(map(str,e))
+    else:
+      resadd=''
+    if len(resadd)>0:
+      if len(res.data)>0: res.data=res.data+'\n'
+      res.data=res.data+resadd
   return res
 
 if filter(lambda s: s.startswith("__name:="),sys.argv):
-  print "may be launched by roslaunch"
+  print "tf_euler may be launched by roslaunch"
   axes="sxyz"
   unit="deg"
   rospy.init_node('tf_euler')

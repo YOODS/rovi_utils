@@ -10,20 +10,12 @@ import json
 from geometry_msgs.msg import Transform
 from geometry_msgs.msg import TransformStamped
 from rovi_utils import tflib
+from rovi_utils.srv import TextFilter,TextFilterRequest,TextFilterResponse
 
-########################################################
-rospy.init_node('tf_lookup',anonymous=True)
-tfBuffer=tf2_ros.Buffer()
-listener=tf2_ros.TransformListener(tfBuffer)
-
-rospy.sleep(1)
-
-while not rospy.is_shutdown():
-#  line=sys.stdin.readline()
-  line=raw_input()
-  tokens=line.split(" ")
+def lookup(s):
+  tokens=s.split(" ")
   if len(tokens)==0:
-    continue
+    return ""
   elif len(tokens)==1:
     base=None
     source="world"
@@ -38,26 +30,44 @@ while not rospy.is_shutdown():
     target=tokens[2]
   if base is None:
     try:
-      sft=tfBuffer.lookup_transform(source,target,rospy.Time(0))
+      tfs=tfBuffer.lookup_transform(source,target,rospy.Time(0))
     except (tf2_ros.LookupException,tf2_ros.ConnectivityException,tf2_ros.ExtrapolationException):
-      sys.stdout.write("{}\n")
-      sys.stdout.flush()
-      continue
+      return ""
     else:
-      sys.stdout.write(json.dumps(tflib.tf2dict(sft.transform))+"\n")
-      sys.stdout.flush()
+      return json.dumps(tflib.tf2dict(tfs.transform))
   else:
     try:
       bft=tfBuffer.lookup_transform(base,target,rospy.Time(0))
       sfb=tfBuffer.lookup_transform(source,base,rospy.Time(0))
     except (tf2_ros.LookupException,tf2_ros.ConnectivityException,tf2_ros.ExtrapolationException):
-      sys.stdout.write("{}\n")
-      sys.stdout.flush()
-      continue
+      return ""
     else:
       bTt=tflib.toRT(bft.transform)
       sTb=tflib.toRT(sfb.transform)
       T=np.dot(bTt,sTb)
-      sys.stdout.write(json.dumps(tflib.tf2dict(tflib.fromRT(T)))+"\n")
-      sys.stdout.flush()
+      return json.dumps(tflib.tf2dict(tflib.fromRT(T)))
 
+def query(req):
+  res=TextFilterResponse()
+  res.data=lookup(req.data)
+  print "tf_lookup req",req.data
+  print "tf_lookup res",res.data
+  return res
+
+########################################################
+rospy.init_node('tf_lookup',anonymous=True)
+tfBuffer=tf2_ros.Buffer()
+listener=tf2_ros.TransformListener(tfBuffer)
+
+if filter(lambda s: s.startswith("__name:="),sys.argv):
+  print "tf_lookup may be launched by roslaunch"
+  s=rospy.Service('/tf_lookup/query', TextFilter, query)
+  rospy.spin()
+else:
+  rospy.sleep(1)
+  while not rospy.is_shutdown():
+#  line=sys.stdin.readline()
+    line=raw_input()
+    stf=lookup(line)
+    if len(stf)==0: continue
+    else: sys.stdout.write(stf+"\n")
