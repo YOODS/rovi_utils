@@ -258,7 +258,7 @@ def cb_clear(msg):
 
 def cb_busy(event):
   global Score
-  if len(Score["proc"])<Config["repeat"]:
+  if len(Score["proc"])<Param["repeat"]:
     pub_busy.publish(mTrue)
     rospy.Timer(rospy.Duration(0.5),cb_busy,oneshot=True)
   else:

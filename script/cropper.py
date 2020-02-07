@@ -46,7 +46,9 @@ def voxel(data):
   d=np.asarray(data).astype(np.float32)
   pc=o3d.geometry.PointCloud()
   pc.points=o3d.utility.Vector3dVector(d)
+  rospy.loginfo("vec3d done")
   dwpc=o3d.geometry.voxel_down_sample(pc,voxel_size=mesh)
+  rospy.loginfo("down sample done")
   return np.reshape(np.asarray(dwpc.points),(-1,3))
 
 def nf(data):
@@ -88,19 +90,15 @@ def arrange(pc,n):
 
 def crop():
   pn=P0()
-  cropZ=Param["cropZ"]
-  cropR=Param["cropR"]
-  ladle=Param["ladC"]
-  ladleW=Param["ladW"]
 #camera cropping and merge points
   for n,pc in enumerate(srcArray):
     pt=pc.T
     w1=None
-    if cropZ>0:
-      w1=np.where(pt[2]<cropZ)
+#    if cropZ>0:
+#      w1=np.where(pt[2]<cropZ)
     w2=None
-    if cropR>0:
-      w2=np.where(np.linalg.norm(pt[:2],axis=0)<cropR)
+    if Param["cropR"]>0:
+      w2=np.where(np.linalg.norm(pt[:2],axis=0)<Param["cropR"])
     if w1 is not None and w2 is not None:
       w=np.intersect1d(w1,w2)
       pa=arrange(pc[w],n)
@@ -111,21 +109,29 @@ def crop():
     else:
       pa=arrange(pc,n)
     pn=np.vstack((pn,pa))
-#ladle cropping
+#ladle cropping(camera)
   pn=voxel(pn)
-  if ladle>0 and len(pn)>ladle:
+  if Param["ladC"]>0 and len(pn)>Param["ladC"]:
     d=np.linalg.norm(pn,axis=1)
     pn=pn[d.argsort(),:]
-    pn=pn[:ladle,:]
-  if ladleW>0 and len(pn)>ladleW:
+    pn=pn[:Param["ladC"],:]
+#world z-crop
+  if len(pn)>0:
     RT=getRT("world",Config["frame_id"])
     pw=pTr(RT,pn)
-    d=pw.T[2]
-    pw=pw[np.ravel(d).argsort(),:]
-    pw=pw[len(pn)-ladleW:,:]
+    pw=pw[np.ravel(pw[:,2]>Param["cropZ"])]
+#ladle cropping(world)
+    if Param["ladW"]>0 and len(pw)>Param["ladW"]:
+      d=pw.T[2]
+      pw=pw[np.ravel(d).argsort(),:]
+      pw=pw[len(pw)-Param["ladW"]:,:]
+#back to camera coordinate
     pn=pTr(np.linalg.inv(RT),pw)
+    rospy.loginfo("ladle done")
 #Noise eliminator
-  if Param["nfrad"]>Param["mesh"]: pn=nf(pn)
+  if Param["nfrad"]>Param["mesh"]:
+    pn=nf(pn)
+    rospy.loginfo("noise filter done")
   pub_crop.publish(np2F(pn))
   return len(pn)
 
