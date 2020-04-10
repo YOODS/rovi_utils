@@ -118,6 +118,9 @@ def crop():
 #world
   if len(pn)>0:
     RT=getRT("world",Config["frame_id"])
+    if RT is None:
+      RT=np.eye(4)
+      rospy.logwarn("cropper::crop::TF not found (world)")
     pw=pTr(RT,pn)
 #    pw=pw[np.ravel(pw[:,2]>Param["cropZ"])]
 #ladle cropping(world)
