@@ -94,8 +94,8 @@ def crop():
   for n,pc in enumerate(srcArray):
     pt=pc.T
     w1=None
-    if cropZ>0:
-      w1=np.where(pt[2]<cropZ)
+    if Param["cropZ"]>0:
+      w1=np.where(pt[2]<Param["cropZ"])
     w2=None
     if Param["cropR"]>0:
       w2=np.where(np.linalg.norm(pt[:2],axis=0)<Param["cropR"])
@@ -115,10 +115,10 @@ def crop():
     d=np.linalg.norm(pn,axis=1)
     pn=pn[d.argsort(),:]
     pn=pn[:Param["ladC"],:]
-##world z-crop
-#  if len(pn)>0:
-#    RT=getRT("world",Config["frame_id"])
-#    pw=pTr(RT,pn)
+#world
+  if len(pn)>0:
+    RT=getRT("world",Config["frame_id"])
+    pw=pTr(RT,pn)
 #    pw=pw[np.ravel(pw[:,2]>Param["cropZ"])]
 #ladle cropping(world)
     if Param["ladW"]>0 and len(pw)>Param["ladW"]:
