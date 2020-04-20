@@ -7,8 +7,8 @@
 "class":"Title",  "label":"操作"
 "class":"Echo",   "label":"カウント","name":"/rcalib/count"
 "class":"Pub",    "label":"カウントリセット","name":"/request/clear"
-"class":"Echo",   "label":"キャリブ板 位置 X\nY\nZ\n姿勢 X\nY\nZ\nW","name":"/gridboard/tf"
-"class":"Echo",   "label":"再投影誤差(平均)","name":"/gridboard/stats"
+"class":"Echo",   "label":"キャリブ板 位置 X\nY\nZ\n姿勢 X\nY\nZ\nW","name":"/gridboard/tf","format":".3f"
+"class":"Echo",   "label":"再投影誤差(平均)","name":"/gridboard/stats","format":".2f
 "class":"Pub",    "label":"取り込み","name":"/request/capture"
 "class":"Title", "label":"解析"
 "class":"Pub",    "label":"解析","name":"/request/solve"

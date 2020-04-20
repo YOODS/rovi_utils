@@ -11,6 +11,7 @@ import sys
 import functools
 from std_msgs.msg import Bool
 from std_msgs.msg import String
+from std_msgs.msg import Float32
 from geometry_msgs.msg import Transform
 from geometry_msgs.msg import TransformStamped
 from std_msgs.msg import Float32MultiArray
@@ -55,6 +56,10 @@ def cb_stats():
       if val>maxval or val<minval:
         judge=mFalse
         stats=stats+str("***")
+  pub_fitness.publish(Stats["fitness"][pick])
+  pub_Tx.publish(Stats["Tx"][pick])
+  pub_Ty.publish(Stats["Ty"][pick])
+  pub_Tz.publish(Stats["Tz"][pick])
   tf=TransformStamped()
   tf.header.stamp=rospy.Time.now()
   tf.header.frame_id=Config["solve_frame_id"]
@@ -126,6 +131,10 @@ rospy.Subscriber("~clear",Bool,cb_clear)
 rospy.Subscriber("~score",Float32MultiArray,cb_score)
 pub_Y1=rospy.Publisher("~redraw",Bool,queue_size=1)
 pub_Y2=rospy.Publisher("~solved",Bool,queue_size=1)
+pub_fitness=rospy.Publisher("/solved/fitness",Float32,queue_size=1)
+pub_Tx=rospy.Publisher("/solved/Tx",Float32,queue_size=1)
+pub_Ty=rospy.Publisher("/solved/Ty",Float32,queue_size=1)
+pub_Tz=rospy.Publisher("/solved/Tz",Float32,queue_size=1)
 pub_msg=rospy.Publisher("/message",String,queue_size=1)
 
 ###Globals
