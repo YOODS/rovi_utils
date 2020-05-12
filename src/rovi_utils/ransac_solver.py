@@ -65,7 +65,8 @@ def solve(datArray,prm):
     pc=fromNumpy(dat)
     scnPcArray.append(pc)
     scnFtArray.append(_get_features(pc))
-  print "time for calc feature",time.time()-t1
+  tfeat=time.time()-t1
+  print "time for calc feature",tfeat
   t1=time.time()
 
   score={"transform":[],"fitness":[],"rmse":[]}
@@ -83,7 +84,10 @@ def solve(datArray,prm):
     score["transform"].append(resicp.transformation)
     score["fitness"].append(resicp.fitness)
     score["rmse"].append(resicp.inlier_rmse)
-  print "time for feature matching",time.time()-t1
+  tmatch=time.time()-t1
+  print "time for feature matching",tmatch
+  score["tfeat"]=tfeat
+  score["tmatch"]=tmatch
   return score
 
 if __name__ == '__main__':
