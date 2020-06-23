@@ -11,7 +11,9 @@
   />
 
   <param name="/rovi/live/camera/SoftwareTriggerRate" type="double" value="4" />
-  <param name="/rovi/pshift_genpc/projector/Mode" type="int" value="1" />
+  <param name="/rovi/live/camera/ExposureTime" type="double" value="5000" />
+  <param name="/rovi/live/camera/Gain" type="double" value="0" />
+  <param name="/rovi/pshift_genpc/projector/Mode" type="int" value="2" />
   <node pkg="rovi" type="grid_node" name="grid_node" args="/rovi/left/remap/Kn">
     <remap from="gridboard/image_in" to="/rovi/left/image_rect" />
     <remap from="gridboard/reload" to="/reload/gridboard" />

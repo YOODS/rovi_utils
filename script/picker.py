@@ -36,25 +36,30 @@ def cb_stats():
     Param.update(rospy.get_param("~param"))
   except Exception as e:
     print "get_param exception:",e.args
-  rospy.loginfo("picker::fitness "+str(Stats["fitness"])+" distance "+str(Stats["Tz"]))
+  rospy.loginfo("picker::fitness "+str(Stats["fitness"]))
   wfit=np.where(Stats["fitness"]>Param["fitness"]["min"])
   if len(wfit[0])>0:
     amin=np.argmin(Stats["Tz"][wfit])
     pick=wfit[0][amin]
   else:
     pick=np.argmin(Stats["Tz"])
-  stats=""
+  stats={}
   judge=mTrue
   for key in Stats:
     val=Stats[key][pick]
     if key in Param:
-      if len(stats)>0: stats=stats+","
-      stats=stats+key+":"+str(val)
       minval=Param[key]["min"]
       maxval=Param[key]["max"]
-      if val>maxval or val<minval:
+      if val>maxval:
+        stats[key]=(val,1)
         judge=mFalse
-        stats=stats+str("***")
+      elif val<minval:
+        stats[key]=(val,-1)
+        judge=mFalse
+      else:
+        stats[key]=(val,0)
+    else:
+      stats[key]=(val,0)
   tf=TransformStamped()
   tf.header.stamp=rospy.Time.now()
   tf.header.frame_id=Config["solve_frame_id"]
@@ -67,7 +72,7 @@ def cb_stats():
   tf.transform.rotation.z=Stats["Qz"][pick]
   tf.transform.rotation.w=Stats["Qw"][pick]
   broadcaster.sendTransform([tf])
-  pub_msg.publish("picker::score "+stats)
+  pub_report.publish(str(stats))
   pub_Y2.publish(judge)
   rospy.Timer(rospy.Duration(0.1),cb_redraw,oneshot=True)
   Stats={}
@@ -126,7 +131,7 @@ rospy.Subscriber("~clear",Bool,cb_clear)
 rospy.Subscriber("~score",Float32MultiArray,cb_score)
 pub_Y1=rospy.Publisher("~redraw",Bool,queue_size=1)
 pub_Y2=rospy.Publisher("~solved",Bool,queue_size=1)
-pub_msg=rospy.Publisher("/message",String,queue_size=1)
+pub_report=rospy.Publisher("/report",String,queue_size=1)
 
 ###Globals
 mTrue=Bool();mTrue.data=True

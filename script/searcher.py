@@ -228,12 +228,14 @@ def cb_solve_do(msg):
     Score["Qw"].append(tf.rotation.w)
 
   result.pop("transform")   #to make cb_score publish other member but for "transform"
+  result["proc"]=float(Config["proc"])
   for key in result:
-    if key in Score: Score[key].extend(result[key])
-    else: Score[key]=result[key]
+    if type(result[key]) is not list:
+      val=result[key]
+      result[key]=[val]*len(RTs)
+    Score[key]=result[key]
 
   for rt in RTs:
-    Score["proc"].append(float(Config["proc"]))
     R=rt[:3,:3]
     T=rt[:3,3]
     Score["distance"].append(np.linalg.norm(T))
