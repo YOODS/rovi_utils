@@ -7,8 +7,8 @@
 
   <!--   Main body of master teach   -->
   <rosparam command="load" file="$(find rovi_utils)/searcher/config.yaml" />
-  <rosparam command="load" file="$(find rovi_utils)/searcher/recipe/param.yaml" />
-  <node pkg="rovi_utils" type="searcher.py" name="" args="path:=$(find rovi_utils)/searcher/recipe" output="screen">
+  <rosparam command="load" file="$(find rovi_utils)/searcher/param.yaml" />
+  <node pkg="rovi_utils" type="searcher.py" name="" args="path:=$(find rovi_utils)/searcher" output="screen">
     <remap from="~config" to="/config/searcher" />
     <remap from="~param" to="/searcher" />
     <remap from="~in/surface/floats" to="/scene/surface/floats" />
