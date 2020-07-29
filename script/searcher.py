@@ -38,8 +38,9 @@ Config={
   "path":"recipe",
   "scenes":["surface"],
   "solver":"o3d_solver",
-  "scene_frame_id":[],
-  "master_frame_id":[]}
+  "scene_frame_ids":[],
+  "master_frame_ids":[],
+  "base_frame_id":"world"}
 Score={
   "proc":[],
   "Tx":[],
@@ -77,8 +78,8 @@ def learn_rot(pc,num,thres):
     if len(RotAxis)>1:
       tf=TransformStamped()
       tf.header.stamp=rospy.Time.now()
-      tf.header.frame_id=Config["master_frame_id"][0]
-      tf.child_frame_id=Config["master_frame_id"][0]+'/axis'
+      tf.header.frame_id=Config["master_frame_ids"][0]
+      tf.child_frame_id=Config["master_frame_ids"][0]+'/axis'
       tf.transform=tflib.fromRT(RotAxis[0])
       tfReg.append(tf)
     else:
@@ -109,14 +110,13 @@ def cb_save(msg):
     pub_pcs[n].publish(np2F(m))
   tfReg=[]
 #copy TF scene...->master... and save them
-  for s,m in zip(Config["scene_frame_id"],Config["master_frame_id"]):
+  for s,m in zip(Config["scene_frame_ids"],Config["master_frame_ids"]):
     try:
-      tf=tfBuffer.lookup_transform("world",s,rospy.Time())
+      tf=tfBuffer.lookup_transform(Config["base_frame_id"],s,rospy.Time())
     except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
-#     pub_msg.publish("searcher::capture::lookup failure world->"+s)
       tf=TransformStamped()
       tf.header.stamp=rospy.Time.now()
-      tf.header.frame_id="world"
+      tf.header.frame_id=Config["base_frame_id"]
       tf.transform.rotation.w=1
     path=Config["path"]+"/"+m.replace('/','_')+".yaml"
     f=open(path,"w")
@@ -140,7 +140,7 @@ def cb_load(msg):
   rospy.Timer(rospy.Duration(0.1),cb_master,oneshot=True)
   tfReg=[]
 #load TF such as master/camera...
-  for m in Config["master_frame_id"]:
+  for m in Config["master_frame_ids"]:
     path=Config["path"]+"/"+m.replace('/','_')+".yaml"
     try:
       f=open(path, "r+")
@@ -148,7 +148,7 @@ def cb_load(msg):
       pub_msg.publish("searcher error::master TF file load failed"+path)
       tf=TransformStamped()
       tf.header.stamp=rospy.Time.now()
-      tf.header.frame_id="world"
+      tf.header.frame_id=Config["base_frame_id"]
       tf.child_frame_id=m
       tf.transform.rotation.w=1
       tfReg.append(tf)
@@ -158,7 +158,7 @@ def cb_load(msg):
       trf=tflib.dict2tf(yd)
       tf=TransformStamped()
       tf.header.stamp=rospy.Time.now()
-      tf.header.frame_id="world"
+      tf.header.frame_id=Config["base_frame_id"]
       tf.child_frame_id=m
       tf.transform=trf
       tfReg.append(tf)

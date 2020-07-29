@@ -26,6 +26,7 @@ from scipy import optimize
 Param={"cropZ":0,"cropR":0,"mesh":0.001,"ladle":0,"ladleW":0,"nfrad":0,"nfmin":0}
 Config={
   "relay":"/rovi/X1",
+  "base_frame_id":"world",
   "source_frame_id":"camera/capture",
   "frame_id":"camera/capture0",
   "capture_frame_id":"camera"
@@ -117,7 +118,7 @@ def crop():
     pn=pn[:Param["ladC"],:]
 #world z-crop
   if len(pn)>0:
-    RT=getRT("world",Config["frame_id"])
+    RT=getRT(Config["base_frame_id"],Config["frame_id"])
     if RT is None:
       RT=np.eye(4)
       rospy.logwarn("cropper::crop::TF not found (world)")
@@ -175,9 +176,9 @@ def cb_clear(msg):
   tfArray=[]
   keep=Config["capture_frame_id"]
   try:
-    keeptf=tfBuffer.lookup_transform("world",keep,rospy.Time())
+    keeptf=tfBuffer.lookup_transform(Config["base_frame_id"],keep,rospy.Time())
     keeptf.header.stamp=rospy.Time.now()
-    keeptf.header.frame_id="world"
+    keeptf.header.frame_id=Config["base_frame_id"]
     keeptf.child_frame_id=keep+"/capture0"
     broadcaster.sendTransform([keeptf])
   except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
@@ -190,9 +191,9 @@ def cb_capture(msg):
   global tfArray
   keep=Config["capture_frame_id"]
   try:
-    keeptf=tfBuffer.lookup_transform("world",keep,rospy.Time())
+    keeptf=tfBuffer.lookup_transform(Config["base_frame_id"],keep,rospy.Time())
     keeptf.header.stamp=rospy.Time.now()
-    keeptf.header.frame_id="world"
+    keeptf.header.frame_id=Config["base_frame_id"]
     keeptf.child_frame_id=keep+"/capture"+str(len(srcArray))
     if len(srcArray)==0: tfArray=[]
     tfArray.append(keeptf)
