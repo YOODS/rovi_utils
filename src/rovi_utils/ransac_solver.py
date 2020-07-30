@@ -19,7 +19,7 @@ modFtArray=[]
 modPcArray=[]
 scnFtArray=[]
 scnPcArray=[]
-Result=None
+score={"transform":[np.eye(4)],"fitness":[None],"rmse":[None]}
 
 def toNumpy(pcd):
   return np.reshape(np.asarray(pcd.points),(-1,3))
@@ -57,7 +57,11 @@ def learn(datArray,prm):
   return modPcArray
 
 def solve(datArray,prm):
-  global scnFtArray,scnPcArray,Param,Result
+  global scnFtArray,scnPcArray,Param,score
+  if "repeat" in prm:
+    n=prm["repeat"]
+    if n!=len(score["transform"]):
+      score={"transform":[np.eye(4)]*n,"fitness":[None]*n,"rmse":[None]*n}
   Param.update(prm)
   scnFtArray=[]
   scnPcArray=[]
@@ -70,38 +74,34 @@ def solve(datArray,prm):
   print "time for calc feature",tfeat
   t1=time.time()
 
-  score={"transform":[],"fitness":[],"rmse":[]}
   for n in range(Param["repeat"]):
     if Param["distance_threshold"]>0:
-      Result=o3.registration_ransac_based_on_feature_matching(
+      result=o3.registration_ransac_based_on_feature_matching(
         modFtArray[0][0],scnFtArray[0][0],modFtArray[0][1],scnFtArray[0][1],Param["distance_threshold"],
         estimation_method=o3.TransformationEstimationPointToPoint(with_scaling=False),
         ransac_n=4,
         checkers=[],
         criteria=o3.RANSACConvergenceCriteria(max_iteration=100000,max_validation=1000))
+      score["transform"][n]=result.transformation
+      score["fitness"][n]=result.fitness
+      score["rmse"][n]=result.inlier_rmse
     if Param["icp_threshold"]>0:
-      if Result is None: tf0=np.eye(4)
-      else: tf0=Result.transformation
-      Result=o3.registration_icp(
+      result=o3.registration_icp(
         modPcArray[0],scnPcArray[0],
         Param["icp_threshold"],
-        tf0,o3.TransformationEstimationPointToPlane())
-    score["transform"].append(Result.transformation)
-    score["fitness"].append(Result.fitness)
-    score["rmse"].append(Result.inlier_rmse)
+        score["transform"][n],o3.TransformationEstimationPointToPlane())
+      score["transform"][n]=result.transformation
+      score["fitness"][n]=result.fitness
+      score["rmse"][n]=result.inlier_rmse
     if "eval_threshold" in Param:
-      res=o3.registration.evaluate_registration(modPcArray[0],scnPcArray[0],Param["eval_threshold"],Result.transformation)
-      score["fitness"].append(res.fitness)
-      score["rmse"].append(res.inlier_rmse)
+      result=o3.registration.evaluate_registration(modPcArray[0],scnPcArray[0],Param["eval_threshold"],score["transform"][n])
+      score["fitness"].append(result.fitness)
+      score["rmse"].append(result.inlier_rmse)
   tmatch=time.time()-t1
   print "time for feature matching",tmatch
   score["tfeat"]=tfeat
   score["tmatch"]=tmatch
   return score
-
-def reset():
-  global Result
-  Result=None
 
 if __name__ == '__main__':
   print "Prepare model"
