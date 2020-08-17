@@ -12,6 +12,7 @@ Param={
   "feature_radius":0.025,
   "distance_threshold":0,
   "icp_threshold":0.003,
+  "eval_threshold":0,
   "repeat":1
 }
 
@@ -58,10 +59,6 @@ def learn(datArray,prm):
 
 def solve(datArray,prm):
   global scnFtArray,scnPcArray,Param,score
-  if "repeat" in prm:
-    n=prm["repeat"]
-    if n!=len(score["transform"]):
-      score={"transform":[np.eye(4)]*n,"fitness":[None]*n,"rmse":[None]*n}
   Param.update(prm)
   scnFtArray=[]
   scnPcArray=[]
@@ -73,7 +70,9 @@ def solve(datArray,prm):
   tfeat=time.time()-t1
   print "time for calc feature",tfeat
   t1=time.time()
-
+  if Param["repeat"]!=len(score["transform"]):
+    n=Param["repeat"]
+    score={"transform":[np.eye(4)]*n,"fitness":[None]*n,"rmse":[None]*n}
   for n in range(Param["repeat"]):
     if Param["distance_threshold"]>0:
       result=o3.registration_ransac_based_on_feature_matching(
@@ -93,7 +92,7 @@ def solve(datArray,prm):
       score["transform"][n]=result.transformation
       score["fitness"][n]=result.fitness
       score["rmse"][n]=result.inlier_rmse
-    if "eval_threshold" in Param:
+    if Param["eval_threshold"]>0:
       result=o3.registration.evaluate_registration(modPcArray[0],scnPcArray[0],Param["eval_threshold"],score["transform"][n])
       score["fitness"].append(result.fitness)
       score["rmse"].append(result.inlier_rmse)
@@ -103,20 +102,3 @@ def solve(datArray,prm):
   score["tmatch"]=tmatch
   return score
 
-if __name__ == '__main__':
-  print "Prepare model"
-  model=o3.read_point_cloud("model.ply")
-  learn([toNumpy(model)],{})
-  scene=o3.read_point_cloud("../data/sample.ply")
-  result=solve([toNumpy(scene)],{})
-  Tmat=result["transform"]
-  score=result["fitness"]
-  print "feature matching result",Tmat[0],score[0]
-
-  P=copy.deepcopy(toNumpy(modPcArray[0]))
-  P=np.dot(Tmat[0][:3],np.vstack((P.T,np.ones((1,len(P)))))).T
-  source=fromNumpy(P)
-  target=scnPcArray[0]
-  source.paint_uniform_color([1, 0.706, 0])
-  target.paint_uniform_color([0, 0.651, 0.929])
-  o3.draw_geometries([source, target])
