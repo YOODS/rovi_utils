@@ -70,8 +70,7 @@ def solve(datArray,prm):
   tfeat=time.time()-t1
   print "time for calc feature",tfeat
   t1=time.time()
-#  if Param["repeat"]!=len(score["transform"]):
-  if True:
+  if Param["repeat"]!=len(score["transform"]):
     n=Param["repeat"]
     score={"transform":[np.eye(4)]*n,"fitness":[None]*n,"rmse":[None]*n}
   for n in range(Param["repeat"]):
