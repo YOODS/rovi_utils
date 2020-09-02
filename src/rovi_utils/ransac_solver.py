@@ -19,6 +19,7 @@ modFtArray=[]
 modPcArray=[]
 scnFtArray=[]
 scnPcArray=[]
+resFt=None
 
 def toNumpy(pcd):
   return np.reshape(np.asarray(pcd.points),(-1,3))
@@ -71,23 +72,32 @@ def solve(datArray,prm):
 
   score={"transform":[],"fitness":[],"rmse":[]}
   for n in range(Param["repeat"]):
-    resft=o3.registration_ransac_based_on_feature_matching(
-      modFtArray[0][0],scnFtArray[0][0],modFtArray[0][1],scnFtArray[0][1],Param["distance_threshold"],
-      estimation_method=o3.TransformationEstimationPointToPoint(with_scaling=False),
-      ransac_n=4,
-      checkers=[],
-      criteria=o3.RANSACConvergenceCriteria(max_iteration=100000,max_validation=1000))
-    resicp=o3.registration_icp(
-      modPcArray[0],scnPcArray[0],
-      Param["icp_threshold"],
-      resft.transformation,o3.TransformationEstimationPointToPlane())
-    score["transform"].append(resicp.transformation)
-    score["fitness"].append(resicp.fitness)
-    score["rmse"].append(resicp.inlier_rmse)
+    if Param["distance_threshold"]>0:
+      resFt=o3.registration_ransac_based_on_feature_matching(
+        modFtArray[0][0],scnFtArray[0][0],modFtArray[0][1],scnFtArray[0][1],Param["distance_threshold"],
+        estimation_method=o3.TransformationEstimationPointToPoint(with_scaling=False),
+        ransac_n=4,
+        checkers=[],
+        criteria=o3.RANSACConvergenceCriteria(max_iteration=100000,max_validation=1000))
+    if Param["icp_threshold"]>0:
+      resicp=o3.registration_icp(
+        modPcArray[0],scnPcArray[0],
+        Param["icp_threshold"],
+        resFt.transformation,o3.TransformationEstimationPointToPlane())
+      score["transform"].append(resicp.transformation)
+#      score["transform_ft"].append(resFt.transformation)
+      score["fitness"].append(resicp.fitness)
+      score["rmse"].append(resicp.inlier_rmse)
+    else:
+      score["transform"].append(resFt.transformation)
+#      score["transform_ft"].append(resFt.transformation)
+      score["fitness"].append(resFf.fitness)
+      score["rmse"].append(resFt.inlier_rmse)
   tmatch=time.time()-t1
   print "time for feature matching",tmatch
   score["tfeat"]=tfeat
   score["tmatch"]=tmatch
+  print np.dot(resFt.transformation,np.linalg.inv(score["transform"][0]))
   return score
 
 if __name__ == '__main__':
