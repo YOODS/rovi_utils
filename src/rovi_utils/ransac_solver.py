@@ -7,11 +7,12 @@ import time
 
 Param={
   "normal_radius":0.01,
-  "normal_min_nn":25,
-  "feature_mesh":0,
+  "normal_min_nn":0,
+  "feature_mesh":0.002,
   "feature_radius":0.025,
-  "distance_threshold":0.001,
-  "icp_threshold":0.0015,
+  "distance_threshold":0,
+  "icp_threshold":0.003,
+  "eval_threshold":0,
   "repeat":1
 }
 
@@ -19,7 +20,7 @@ modFtArray=[]
 modPcArray=[]
 scnFtArray=[]
 scnPcArray=[]
-resFt=None
+score={"transform":[np.eye(4)],"fitness":[None],"rmse":[None]}
 
 def toNumpy(pcd):
   return np.reshape(np.asarray(pcd.points),(-1,3))
@@ -57,7 +58,7 @@ def learn(datArray,prm):
   return modPcArray
 
 def solve(datArray,prm):
-  global scnFtArray,scnPcArray,Param
+  global scnFtArray,scnPcArray,Param,score
   Param.update(prm)
   scnFtArray=[]
   scnPcArray=[]
@@ -69,51 +70,35 @@ def solve(datArray,prm):
   tfeat=time.time()-t1
   print "time for calc feature",tfeat
   t1=time.time()
-
-  score={"transform":[],"fitness":[],"rmse":[]}
+  if Param["repeat"]!=len(score["transform"]):
+    n=Param["repeat"]
+    score={"transform":[np.eye(4)]*n,"fitness":[None]*n,"rmse":[None]*n}
   for n in range(Param["repeat"]):
     if Param["distance_threshold"]>0:
-      resFt=o3.registration_ransac_based_on_feature_matching(
+      result=o3.registration_ransac_based_on_feature_matching(
         modFtArray[0][0],scnFtArray[0][0],modFtArray[0][1],scnFtArray[0][1],Param["distance_threshold"],
         estimation_method=o3.TransformationEstimationPointToPoint(with_scaling=False),
         ransac_n=4,
         checkers=[],
         criteria=o3.RANSACConvergenceCriteria(max_iteration=100000,max_validation=1000))
+      score["transform"][n]=result.transformation
+      score["fitness"][n]=result.fitness
+      score["rmse"][n]=result.inlier_rmse
     if Param["icp_threshold"]>0:
-      resicp=o3.registration_icp(
+      result=o3.registration_icp(
         modPcArray[0],scnPcArray[0],
         Param["icp_threshold"],
-        resFt.transformation,o3.TransformationEstimationPointToPlane())
-      score["transform"].append(resicp.transformation)
-#      score["transform_ft"].append(resFt.transformation)
-      score["fitness"].append(resicp.fitness)
-      score["rmse"].append(resicp.inlier_rmse)
-    else:
-      score["transform"].append(resFt.transformation)
-#      score["transform_ft"].append(resFt.transformation)
-      score["fitness"].append(resFf.fitness)
-      score["rmse"].append(resFt.inlier_rmse)
+        score["transform"][n],o3.TransformationEstimationPointToPlane())
+      score["transform"][n]=result.transformation
+      score["fitness"][n]=result.fitness
+      score["rmse"][n]=result.inlier_rmse
+    if Param["eval_threshold"]>0:
+      result=o3.registration.evaluate_registration(modPcArray[0],scnPcArray[0],Param["eval_threshold"],score["transform"][n])
+      score["fitness"].append(result.fitness)
+      score["rmse"].append(result.inlier_rmse)
   tmatch=time.time()-t1
   print "time for feature matching",tmatch
   score["tfeat"]=tfeat
   score["tmatch"]=tmatch
-  print np.dot(resFt.transformation,np.linalg.inv(score["transform"][0]))
   return score
 
-if __name__ == '__main__':
-  print "Prepare model"
-  model=o3.read_point_cloud("model.ply")
-  learn([toNumpy(model)],{})
-  scene=o3.read_point_cloud("../data/sample.ply")
-  result=solve([toNumpy(scene)],{})
-  Tmat=result["transform"]
-  score=result["fitness"]
-  print "feature matching result",Tmat[0],score[0]
-
-  P=copy.deepcopy(toNumpy(modPcArray[0]))
-  P=np.dot(Tmat[0][:3],np.vstack((P.T,np.ones((1,len(P)))))).T
-  source=fromNumpy(P)
-  target=scnPcArray[0]
-  source.paint_uniform_color([1, 0.706, 0])
-  target.paint_uniform_color([0, 0.651, 0.929])
-  o3.draw_geometries([source, target])

@@ -227,13 +227,12 @@ def cb_solve_do(msg):
     Score["Qz"].append(tf.rotation.z)
     Score["Qw"].append(tf.rotation.w)
 
-  result.pop("transform")   #to make cb_score publish other member but for "transform"
   result["proc"]=float(Config["proc"])
   for key in result:
-    if type(result[key]) is not list:
-      val=result[key]
-      result[key]=[val]*len(RTs)
-    Score[key]=result[key]
+    if type(result[key]) is not list: # scalar->list
+      Score[key]=[result[key]]*len(RTs)
+    elif type(result[key][0]) is float: # float->list
+      Score[key]=result[key]
 
   for rt in RTs:
     R=rt[:3,:3]

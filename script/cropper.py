@@ -32,6 +32,9 @@ Config={
   "capture_frame_id":"camera"
 }
 
+OutFloats=None
+RawFloats=None
+
 def P0():
   return np.array([]).reshape((-1,3))
 
@@ -89,7 +92,11 @@ def arrange(pc,n):
           rospy.logwarn("cropper::arrange::TF not found")
   return pTr(RT,pc)
 
+def cb_pub(msg):
+  if OutFloats is not None: pub_crop.publish(OutFloats)
+
 def crop():
+  global OutFloats
   pn=P0()
 #camera cropping and merge points
   for n,pc in enumerate(srcArray):
@@ -136,7 +143,8 @@ def crop():
   if Param["nfrad"]>Param["mesh"]:
     pn=nf(pn)
     rospy.loginfo("noise filter done")
-  pub_crop.publish(np2F(pn))
+  OutFloats=np2F(pn)
+  cb_pub(True)
   return len(pn)
 
 def raw():
@@ -233,6 +241,7 @@ print "Param",Param
 rospy.Subscriber("~in/floats",numpy_msg(Floats),cb_ps)
 rospy.Subscriber("~clear",Bool,cb_clear)
 rospy.Subscriber("~capture",Bool,cb_capture)
+rospy.Subscriber("~redraw",Bool,cb_pub)
 if "ansback" in Config:
   rospy.Subscriber(Config["ansback"],Bool,cb_ansback)
 ###Output topics
