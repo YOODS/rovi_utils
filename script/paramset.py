@@ -10,14 +10,12 @@ import sys
 Config={
   "set":[]
 }
-Params=[]
 
 def endkey(key,dic,n):
   for k in dic:
     if type(dic[k]) is list:
       if n<1: n=1
       if n>len(dic[k]): n=len(dic[k])
-      print 'endkey',dic[k],k
       rospy.set_param(key+'/'+k,dic[k][n-1])
     else:
       endkey(key+'/'+k,dic[k],n)
@@ -26,12 +24,11 @@ def cb_param(msg):
   global Params
   for n,rc in enumerate(Config["set"]):  #to make "paramset" list
     try:
-      setn=rospy.get_param(rc+"/paramsetN")
-      if setn!=Params[n]["paramsetN"]:
-        param=rospy.get_param(rc)
+      param=rospy.get_param(rc)
+      if "paramsetN" in param:
+        setn=param["paramsetN"]
         if "paramset" in param:
           endkey(rc,param["paramset"],setn)
-          Params[n]=param
     except Exception as e:
       rospy.logwarn("Exception in parameset "+str(e))
   rospy.Timer(rospy.Duration(1),cb_param,oneshot=True)
@@ -56,7 +53,6 @@ except Exception as e:
 print "Config",Config
 
 Config["set"]=eval(Config["set"].replace('[','["').replace(']','"]').replace(',','","'))
-Params=[{"paramsetN":9999}]*len(Config["set"])
 
 rospy.Timer(rospy.Duration(1),cb_param,oneshot=True) #to check change of param
 
