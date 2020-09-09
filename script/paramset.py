@@ -17,6 +17,7 @@ def endkey(key,dic,n):
     if type(dic[k]) is list:
       if n<1: n=1
       if n>len(dic[k]): n=len(dic[k])
+      print 'endkey',dic[k],k
       rospy.set_param(key+'/'+k,dic[k][n-1])
     else:
       endkey(key+'/'+k,dic[k],n)
@@ -30,7 +31,7 @@ def cb_param(msg):
         param=rospy.get_param(rc)
         if "paramset" in param:
           endkey(rc,param["paramset"],setn)
-        Params[n]=param
+          Params[n]=param
     except Exception as e:
       rospy.logwarn("Exception in parameset "+str(e))
   rospy.Timer(rospy.Duration(1),cb_param,oneshot=True)
