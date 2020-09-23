@@ -3,7 +3,10 @@
 import numpy as np
 import open3d as o3d
 import copy
-from rovi_utils import ransac_solver as solver
+import sys
+from pathlib import Path
+sys.path.append(str(Path('__file__').resolve().parent.parent))
+from src.rovi_utils import ransac_solver as solver
 
 Param={
   "distance_threshold": 0.002,
@@ -14,15 +17,15 @@ Param={
   "rotate":0,
   "repeat":1}
 
-model=o3d.read_point_cloud("../data/model.ply")
-scene=o3d.read_point_cloud("../data/sample.ply")
+model=o3d.io.read_point_cloud("../data/model.ply")
+scene=o3d.io.read_point_cloud("../data/sample.ply")
 model.paint_uniform_color([1, 0.706, 0])
 scene.paint_uniform_color([0, 0.651, 0.929])
-o3d.draw_geometries([model, scene])
+o3d.visualization.draw_geometries([model, scene])
 
 solver.learn([solver.toNumpy(model)],Param)
 result=solver.solve([solver.toNumpy(scene)],Param)
-print "Score",result["fitness"]
-print "Tmat",result["transform"]
+print("Score",result["fitness"])
+print("Tmat",result["transform"])
 model.transform(result["transform"][0])
-o3d.draw_geometries([model, scene])
+o3d.visualization.draw_geometries([model, scene])
