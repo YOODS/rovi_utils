@@ -23,13 +23,17 @@ from geometry_msgs.msg import TransformStamped
 from rovi_utils import tflib
 from scipy import optimize
 
-Param={"cropZ":1000,"cropR":1000,"mesh":1.0}
+Param={"cropZ":0,"cropR":0,"mesh":0.001,"ladle":0,"ladleW":0,"nfrad":0,"nfmin":0}
 Config={
   "relay":"/rovi/X1",
+  "base_frame_id":"world",
   "source_frame_id":"camera/capture",
   "frame_id":"camera/capture0",
   "capture_frame_id":"camera"
 }
+
+OutFloats=None
+RawFloats=None
 
 def P0():
   return np.array([]).reshape((-1,3))
@@ -43,10 +47,22 @@ def voxel(data):
   mesh=Param["mesh"]
   if mesh==0: return data
   if len(data)<10: return data
-  d=data.astype(np.float32)
-  pc=o3d.PointCloud()
-  pc.points=o3d.Vector3dVector(d)
-  dwpc=o3d.voxel_down_sample(pc,voxel_size=mesh)
+  d=np.asarray(data).astype(np.float32)
+  pc=o3d.geometry.PointCloud()
+  pc.points=o3d.utility.Vector3dVector(d)
+  rospy.loginfo("vec3d done")
+  dwpc=o3d.geometry.voxel_down_sample(pc,voxel_size=mesh)
+  rospy.loginfo("down sample done")
+  return np.reshape(np.asarray(dwpc.points),(-1,3))
+
+def nf(data):
+  d=np.asarray(data).astype(np.float32)
+  pc=o3d.geometry.PointCloud()
+  pc.points=o3d.utility.Vector3dVector(d)
+  nfmin=Param["nfmin"]
+  if nfmin<=0: nfmin=1
+  cl,ind=o3d.geometry.radius_outlier_removal(pc,nb_points=nfmin,radius=Param["nfrad"])
+  dwpc=o3d.geometry.select_down_sample(pc,ind)
   return np.reshape(np.asarray(dwpc.points),(-1,3))
 
 def getRT(base,ref):
@@ -57,6 +73,9 @@ def getRT(base,ref):
   except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
     RT=None
   return RT
+
+def pTr(RT,pc):
+  return np.dot(RT[:3],np.vstack((pc.T,np.ones((1,len(pc)))))).T
 
 def arrange(pc,n):
   capc=Config["source_frame_id"]
@@ -71,57 +90,79 @@ def arrange(pc,n):
         if RT is None:
           RT=np.eye(4)
           rospy.logwarn("cropper::arrange::TF not found")
-  return np.dot(RT[:3],np.vstack((pc.T,np.ones((1,len(pc)))))).T
+  return pTr(RT,pc)
+
+def cb_pub(msg):
+  if OutFloats is not None: pub_crop.publish(OutFloats)
 
 def crop():
-  print "cropper clear"
+  global OutFloats
   pn=P0()
-  cropZ=Param["cropZ"]
-  cropR=Param["cropR"]
+#camera cropping and merge points
   for n,pc in enumerate(srcArray):
     pt=pc.T
-    w1=np.where(pt[2]<cropZ)
-    w2=np.where(np.linalg.norm(pt[:2],axis=0)<cropR)
-    w=np.intersect1d(w1,w2)
-    pa=arrange(pc[w],n)
+    w1=None
+    if Param["cropZ"]>0:
+      w1=np.where(pt[2]<Param["cropZ"])
+    w2=None
+    if Param["cropR"]>0:
+      w2=np.where(np.linalg.norm(pt[:2],axis=0)<Param["cropR"])
+    if w1 is not None and w2 is not None:
+      w=np.intersect1d(w1,w2)
+      pa=arrange(pc[w],n)
+    elif w1 is not None:
+      pa=arrange(pc[w1],n)
+    elif w2 is not None:
+      pa=arrange(pc[w2],n)
+    else:
+      pa=arrange(pc,n)
     pn=np.vstack((pn,pa))
-  print "cropPn",pn.shape
-  pub_crop.publish(np2F(pn))
-  return
+#ladle cropping(camera)
+  pn=voxel(pn)
+  if Param["ladC"]>0 and len(pn)>Param["ladC"]:
+    d=np.linalg.norm(pn,axis=1)
+    pn=pn[d.argsort(),:]
+    pn=pn[:Param["ladC"],:]
+#world z-crop
+  if len(pn)>0:
+    RT=getRT(Config["base_frame_id"],Config["frame_id"])
+    if RT is None:
+      RT=np.eye(4)
+      rospy.logwarn("cropper::crop::TF not found (world)")
+    pw=pTr(RT,pn)
+#    pw=pw[np.ravel(pw[:,2]>Param["cropZ"])]
+#ladle cropping(world)
+    if Param["ladW"]>0 and len(pw)>Param["ladW"]:
+      d=pw.T[2]
+      pw=pw[np.ravel(d).argsort(),:]
+      pw=pw[len(pw)-Param["ladW"]:,:]
+#back to camera coordinate
+    pn=pTr(np.linalg.inv(RT),pw)
+    rospy.loginfo("ladle done")
+#Noise eliminator
+  if Param["nfrad"]>Param["mesh"]:
+    pn=nf(pn)
+    rospy.loginfo("noise filter done")
+  OutFloats=np2F(pn)
+  cb_pub(True)
+  return len(pn)
 
 def raw():
   pn=P0()
   for n,pc in enumerate(srcArray):
     pa=arrange(pc,n)
     pn=np.vstack((pn,pa))
-  print "rawPn",pn.shape
-  pub_raw.publish(np2F(pn))
+#  pub_raw.publish(np2F(pn))
   return
 
 def cb_ps(msg): #callback of ps_floats
   global srcArray
   pc=np.reshape(msg.data,(-1,3))
-  pc=voxel(pc)
+#  pc=voxel(pc)
   srcArray.append(pc)
   raw()
   crop()
-  return
-
-def cb_setcrop(msg):
-  if len(srcArray)==0: return
-  pn=P0()
-  for pc in srcArray:
-    pn=np.vstack((pn,pc))
-  zcrop=np.mean(pn.T[2]) #+np.std(pn.T[2])
-  rad=np.linalg.norm(pn.T[:2],axis=0)
-  rcrop=np.mean(rad) #+np.std(rad)
-  try:
-    zval='{:.4e}'.format(zcrop)
-    rval='{:.4e}'.format(rcrop)
-    rospy.set_param('~cropZ',float(zval))
-    rospy.set_param('~cropR',float(rval))
-  except Exception as e:
-    print "exception",e
+  pub_capture.publish(mTrue)
   return
 
 def cb_param(msg):
@@ -131,9 +172,10 @@ def cb_param(msg):
     Param.update(rospy.get_param("~param"))
   except Exception as e:
     print "get_param exception:",e.args
-  if prm==Param: return
-  print "Param changed",Param
-  crop()
+  if prm!=Param:
+    print "Param changed",Param
+    crop()
+  rospy.Timer(rospy.Duration(1),cb_param,oneshot=True) #Param update itself
   return
 
 def cb_clear(msg):
@@ -142,9 +184,9 @@ def cb_clear(msg):
   tfArray=[]
   keep=Config["capture_frame_id"]
   try:
-    keeptf=tfBuffer.lookup_transform("world",keep,rospy.Time())
+    keeptf=tfBuffer.lookup_transform(Config["base_frame_id"],keep,rospy.Time())
     keeptf.header.stamp=rospy.Time.now()
-    keeptf.header.frame_id="world"
+    keeptf.header.frame_id=Config["base_frame_id"]
     keeptf.child_frame_id=keep+"/capture0"
     broadcaster.sendTransform([keeptf])
   except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
@@ -157,9 +199,9 @@ def cb_capture(msg):
   global tfArray
   keep=Config["capture_frame_id"]
   try:
-    keeptf=tfBuffer.lookup_transform("world",keep,rospy.Time())
+    keeptf=tfBuffer.lookup_transform(Config["base_frame_id"],keep,rospy.Time())
     keeptf.header.stamp=rospy.Time.now()
-    keeptf.header.frame_id="world"
+    keeptf.header.frame_id=Config["base_frame_id"]
     keeptf.child_frame_id=keep+"/capture"+str(len(srcArray))
     if len(srcArray)==0: tfArray=[]
     tfArray.append(keeptf)
@@ -170,7 +212,7 @@ def cb_capture(msg):
   if pub_relay is not None: pub_relay.publish(mTrue)
 
 def cb_ansback(msg):
-  pub_capture.publish(msg)
+  if msg.data is False: pub_capture.publish(mFalse)
 
 def parse_argv(argv):
   args={}
@@ -195,13 +237,11 @@ except Exception as e:
   print "get_param exception:",e.args
 print "Param",Param
 
-rospy.Timer(rospy.Duration(1),cb_param) #Param update itself
-
 ###Input topics
 rospy.Subscriber("~in/floats",numpy_msg(Floats),cb_ps)
 rospy.Subscriber("~clear",Bool,cb_clear)
 rospy.Subscriber("~capture",Bool,cb_capture)
-rospy.Subscriber("~setcrop",Bool,cb_setcrop)
+rospy.Subscriber("~redraw",Bool,cb_pub)
 if "ansback" in Config:
   rospy.Subscriber(Config["ansback"],Bool,cb_ansback)
 ###Output topics
@@ -222,6 +262,8 @@ listener=tf2_ros.TransformListener(tfBuffer)
 broadcaster=tf2_ros.StaticTransformBroadcaster()
 rospy.sleep(1)
 cb_clear(mTrue)
+
+rospy.Timer(rospy.Duration(1),cb_param,oneshot=True) #Param update itself
 
 try:
   rospy.spin()
