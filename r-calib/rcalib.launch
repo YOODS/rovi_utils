@@ -33,9 +33,6 @@
     <remap from="~count" to="/rcalib/count" />
   </node>
   <!--   User interface  -->
-  <node ns="rcalib" pkg="image_view" type="image_view" name="image_view" args="image:=/gridboard/image_out">
-    <remap from="~" to="/config/rcalib/image_view" />
-  </node>
   <node pkg="rtk_tools" type="panel.py" name="" args="
     conf:=$(find rovi_utils)/r-calib/rcalib.zui
     dump:=$(find rovi_utils)/r-calib/param.yaml

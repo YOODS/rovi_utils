@@ -185,9 +185,9 @@ def cb_score():
 
 def cb_solve(msg):
   global Score
-  if [x for x in Scene if x is None]:
-    pub_msg.publish("searcher::short scene data")
-    ret=Bool();ret.data=False;pub_Y2.publish(ret)
+  if len(filter(lambda x:len(x)>0,Scene))==0:
+    pub_msg.publish("searcher::Lacked scene to solve")
+    pub_Y2.publish(mFalse)
     return
   Param.update(rospy.get_param("~param"))
   for key in Score: Score[key]=[]
