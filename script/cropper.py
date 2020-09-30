@@ -36,6 +36,7 @@ Config={
 OutFloats=None
 RawFloats=None
 Tcapt=0
+Report={}
 
 def P0():
   return np.array([]).reshape((-1,3))
@@ -158,14 +159,18 @@ def raw():
   return
 
 def cb_ps(msg): #callback of ps_floats
-  global srcArray,Tcapt
+  global srcArray,Tcapt,Report
+  Report['T12']=time.time()
   pc=np.reshape(msg.data,(-1,3))
 #  pc=voxel(pc)
   srcArray.append(pc)
   raw()
   crop()
   pub_capture.publish(mTrue)
-  pub_report.publish(str({"tcap":time.time()-Tcapt}))
+  tps=time.time()
+  Report['T13']=tps
+  Report['tcap']=tps-Tcapt
+  pub_report.publish(str(Report))
   return
 
 def cb_param(msg):
@@ -199,7 +204,8 @@ def cb_clear(msg):
   pub_clear.publish(mTrue)
 
 def cb_capture(msg):
-  global tfArray,Tcapt
+  global tfArray,Tcapt,Report
+  Report['T10']=time.time()
   keep=Config["capture_frame_id"]
   try:
     keeptf=tfBuffer.lookup_transform(Config["base_frame_id"],keep,rospy.Time())
@@ -214,6 +220,7 @@ def cb_capture(msg):
     rospy.loginfo("cropper::capture::TF lookup failure world->"+keep)
   if pub_relay is not None: pub_relay.publish(mTrue)
   Tcapt=time.time()
+  Report['T11']=Tcapt
 
 def cb_ansback(msg):
   if msg.data is False: pub_capture.publish(mFalse)
