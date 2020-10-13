@@ -11,6 +11,7 @@ import open3d as o3d
 import copy
 import os
 import sys
+import time
 from rovi.msg import Floats
 from rospy.numpy_msg import numpy_msg
 from std_msgs.msg import Bool
@@ -34,6 +35,8 @@ Config={
 
 OutFloats=None
 RawFloats=None
+Tcapt=0
+Report={}
 
 def P0():
   return np.array([]).reshape((-1,3))
@@ -156,13 +159,18 @@ def raw():
   return
 
 def cb_ps(msg): #callback of ps_floats
-  global srcArray
+  global srcArray,Tcapt,Report
+  Report['T12']=time.time()
   pc=np.reshape(msg.data,(-1,3))
 #  pc=voxel(pc)
   srcArray.append(pc)
   raw()
   crop()
   pub_capture.publish(mTrue)
+  tps=time.time()
+  Report['T13']=tps
+  Report['tcap']=tps-Tcapt
+  pub_report.publish(str(Report))
   return
 
 def cb_param(msg):
@@ -196,7 +204,8 @@ def cb_clear(msg):
   pub_clear.publish(mTrue)
 
 def cb_capture(msg):
-  global tfArray
+  global tfArray,Tcapt,Report
+  Report['T10']=time.time()
   keep=Config["capture_frame_id"]
   try:
     keeptf=tfBuffer.lookup_transform(Config["base_frame_id"],keep,rospy.Time())
@@ -210,6 +219,8 @@ def cb_capture(msg):
   except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
     rospy.loginfo("cropper::capture::TF lookup failure world->"+keep)
   if pub_relay is not None: pub_relay.publish(mTrue)
+  Tcapt=time.time()
+  Report['T11']=Tcapt
 
 def cb_ansback(msg):
   if msg.data is False: pub_capture.publish(mFalse)
@@ -253,6 +264,7 @@ if "relay" in Config:
 pub_clear=rospy.Publisher("~cleared",Bool,queue_size=1)
 pub_capture=rospy.Publisher("~captured",Bool,queue_size=1)
 pub_msg=rospy.Publisher("/message",String,queue_size=1)
+pub_report=rospy.Publisher("/report",String,queue_size=1)
 
 ###Globals
 mTrue=Bool();mTrue.data=True
