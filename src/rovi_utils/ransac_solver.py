@@ -38,7 +38,8 @@ def _get_features(cloud):
   nfmin=Param["normal_min_nn"]
   if nfmin<=0: nfmin=1
   cl,ind=o3.geometry.PointCloud.remove_radius_outlier(cloud,nb_points=nfmin,radius=Param["normal_radius"])
-  nfcl=o3.geometry.PointCloud.select_by_index(cloud,ind)
+#  nfcl=o3.geometry.PointCloud.select_by_index(cloud,ind)
+  nfcl=o3.geometry.PointCloud.select_down_sample(cloud,ind)
   cloud.points=nfcl.points
   cloud.normals=nfcl.normals
   cds=cloud

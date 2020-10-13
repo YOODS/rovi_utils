@@ -48,7 +48,7 @@ def voxel(data):
   pc=o3d.geometry.PointCloud()
   pc.points=o3d.utility.Vector3dVector(d)
   rospy.loginfo("vec3d done")
-  dwpc=o3d.geometry.voxel_down_sample(pc,voxel_size=mesh)
+  dwpc=o3d.geometry.PointCloud.voxel_down_sample(pc,voxel_size=mesh)
   rospy.loginfo("down sample done")
   return np.reshape(np.asarray(dwpc.points),(-1,3))
 
@@ -58,8 +58,8 @@ def nf(data):
   pc.points=o3d.utility.Vector3dVector(d)
   nfmin=Param["nfmin"]
   if nfmin<=0: nfmin=1
-  cl,ind=o3d.geometry.radius_outlier_removal(pc,nb_points=nfmin,radius=Param["nfrad"])
-  dwpc=o3d.geometry.select_down_sample(pc,ind)
+  cl,ind=o3d.geometry.PointCloud.remove_radius_outlier(pc,nb_points=nfmin,radius=Param["nfrad"])
+  dwpc=o3d.geometry.PointCloud.select_down_sample(pc,ind)
   return np.reshape(np.asarray(dwpc.points),(-1,3))
 
 def getRT(base,ref):

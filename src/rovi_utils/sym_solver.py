@@ -20,7 +20,7 @@ def fromNumpy(dat):
 def getImmovTf(T,pc0,thres):
   pc1=copy.deepcopy(pc0)
   pc1.transform(T)
-  reg=o3d.registration_icp(pc1,pc0,thres,np.eye(4,dtype=float),o3d.TransformationEstimationPointToPlane())
+  reg=o3d.registration.registration_icp(pc1,pc0,thres,np.eye(4,dtype=float),o3d.registration.TransformationEstimationPointToPlane())
 #  print reg.fitness
 #  print reg.transformation
   return np.dot(reg.transformation,T)

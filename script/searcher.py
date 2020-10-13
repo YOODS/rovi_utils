@@ -106,7 +106,7 @@ def cb_save(msg):
       return
     Model[n]=m
     pc.points=o3d.Vector3dVector(m)
-    o3d.write_point_cloud(Config["path"]+"/"+l+".ply",pc,True,False)
+    o3d.io.write_point_cloud(Config["path"]+"/"+l+".ply",pc,True,False)
     pub_pcs[n].publish(np2F(m))
   tfReg=[]
 #copy TF scene...->master... and save them
@@ -135,7 +135,7 @@ def cb_load(msg):
   global Model,tfReg,Param
 #load point cloud
   for n,l in enumerate(Config["scenes"]):
-    pcd=o3d.read_point_cloud(Config["path"]+"/"+l+".ply")
+    pcd=o3d.io.read_point_cloud(Config["path"]+"/"+l+".ply")
     Model[n]=np.reshape(np.asarray(pcd.points),(-1,3))
   rospy.Timer(rospy.Duration(0.1),cb_master,oneshot=True)
   tfReg=[]
@@ -273,7 +273,7 @@ def cb_dump(msg):
     m=Scene[n]
     if(len(m)==0): continue
     pc.points=o3d.Vector3dVector(m)
-    o3d.write_point_cloud("/tmp/"+l+".ply",pc,True,False)
+    o3d.io.write_point_cloud("/tmp/"+l+".ply",pc,True,False)
 
 def cb_param(msg):
   global Param
