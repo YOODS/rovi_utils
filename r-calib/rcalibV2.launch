@@ -1,0 +1,40 @@
+<launch>
+  <arg name="result" default="rovi_utils/r-calib/rcalib.yaml" />
+  <rosparam command="load" file="$(find rovi_utils)/r-calib/config.yaml" />
+  <rosparam command="load" file="$(find rovi_utils)/r-calib/param.yaml" />
+  <node pkg="rovi_utils" type="config_tf.py" name="config_tf" />
+  <node pkg="rtk_tools" type="panel.py" name="" args="
+    conf:=$(find rovi_utils)/config_tf/config_tf.zui
+    dump:=$(find rovi_utils)/../$(arg result)
+    lift:=False
+    geom:=300x300-0+5"
+  />
+
+  <param name="/rovi/ycam/Mode" type="int" value="2" />
+  <param name="/rovi/ycam/DrawCenterCross" type="bool" value="false" />
+  <node pkg="rovi" type="grid_node" name="grid_node" args="/rovi/left/remap/Kn">
+    <remap from="gridboard/image_in" to="/rovi/left/image_rect" />
+    <remap from="gridboard/reload" to="/reload/gridboard" />
+  </node>
+  <node pkg="rovi_utils" type="rcalib.py" name="rcalib" output="screen">
+    <remap from="~config" to="/config/rcalib" />
+    <remap from="~clear" to="/request/clear" />
+    <remap from="~capture" to="/request/capture" />
+    <remap from="~cleared" to="/response/clear" />
+    <remap from="~captured" to="/response/capture" />
+    <remap from="~solved" to="/response/solve" />
+    <remap from="~count" to="/rcalib/count" />
+  </node>
+  <node pkg="rovi_utils" type="planner.py" name="planner" output="screen">
+    <remap from="~solve" to="/request/solve" />
+    <remap from="~solved" to="/response/solve" />
+    <remap from="~count" to="/rcalib/count" />
+  </node>
+  <!--   User interface  -->
+  <node pkg="rtk_tools" type="panel.py" name="" args="
+    conf:=$(find rovi_utils)/r-calib/rcalibV2.zui
+    dump:=$(find rovi_utils)/r-calib/param.yaml
+    lift:=False
+    geom:=300x500-0+350"
+  />
+</launch>
