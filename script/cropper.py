@@ -152,6 +152,7 @@ def cb_ps(msg): #callback of ps_floats
   pc=np.reshape(msg.data,(-1,3))
 #  pc=voxel(pc)
   srcArray.append(pc)
+  pub_report.publish(str({"pcount":np.sum(map(len,srcArray))}))
   raw()
   crop()
   pub_capture.publish(mTrue)
@@ -244,6 +245,7 @@ if "relay" in Config:
 pub_clear=rospy.Publisher("~cleared",Bool,queue_size=1)
 pub_capture=rospy.Publisher("~captured",Bool,queue_size=1)
 pub_msg=rospy.Publisher("/message",String,queue_size=1)
+pub_report=rospy.Publisher("/report",String,queue_size=1)
 
 ###Globals
 mTrue=Bool();mTrue.data=True
