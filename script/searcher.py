@@ -23,6 +23,7 @@ from geometry_msgs.msg import Transform
 from geometry_msgs.msg import TransformStamped
 from rovi_utils import tflib
 from rovi_utils import sym_solver as rotsym
+from rovi_utils import axis_solver as rotjour
 from scipy import optimize
 
 Param={
@@ -32,7 +33,9 @@ Param={
   "distance_threshold":0.1,
   "icp_threshold":0.001,
   "rotate":0,
-  "repeat":1}
+  "repeat":1,
+  "cutter":{"base":0,"offset":0,"width":0}
+}
 Config={
   "proc":0,
   "path":"recipe",
@@ -86,6 +89,22 @@ def learn_rot(pc,num,thres):
       RotAxis=None
       print 'No axis'
       pub_err.publish("searcher::No axis")
+
+def learn_journal(pc,base,ofs,wid):
+  global JourAxis,tfReg
+  JourAxis=None
+  if wid>0:
+    JourAxis=rotjour.solve(pc,base,base+ofs,wid)
+    if JourAxis is not None:
+      tf=TransformStamped()
+      tf.header.stamp=rospy.Time.now()
+      tf.header.frame_id=Config["master_frame_ids"][0]
+      tf.child_frame_id=Config["master_frame_ids"][0]+'/journal'
+      tf.transform=tflib.fromRT(JourAxis)
+      tfReg.append(tf)
+    else:
+      print 'No journal'
+      pub_err.publish("searcher::No journal")
 
 def cb_master(event):
   if Config["proc"]==0:
@@ -166,6 +185,7 @@ def cb_load(msg):
   print 'learning pc',Param['rotate']
   pcd=learn_feat(Model,Param)
   learn_rot(pcd[0],Param['rotate'],Param['icp_threshold'])
+  learn_journal(pcd[0],Param["cutter"]["base"],Param["cutter"]["offset"],Param["cutter"]["width"])
   if Config["proc"]==0: broadcaster.sendTransform(tfReg)
   pub_msg.publish("searcher::model loaded and learning completed")
   pub_loaded.publish(mTrue)
@@ -219,6 +239,7 @@ def cb_solve_do(msg):
       tf=tflib.fromRT(wrt[np.argmin(np.asarray(rot))])
     else:
       tf=tflib.fromRT(rt)
+
     Score["Tx"].append(tf.translation.x)
     Score["Ty"].append(tf.translation.y)
     Score["Tz"].append(tf.translation.z)
@@ -249,7 +270,6 @@ def cb_ps(msg,n):
   pc=np.reshape(msg.data,(-1,3))
   Scene[n]=pc
   print "cb_ps",pc.shape
-
 
 def cb_clear(msg):
   global Scene
@@ -349,6 +369,7 @@ broadcaster=tf2_ros.StaticTransformBroadcaster()
 Scene=[None]*len(Config["scenes"])
 Model=[None]*len(Config["scenes"])
 RotAxis=None
+JourAxis=None
 tfReg=[]
 
 rospy.Timer(rospy.Duration(5),cb_load,oneshot=True)
