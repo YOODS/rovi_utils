@@ -70,7 +70,7 @@ def learn_feat(mod,param):
   pcd=solver.learn(mod,param)
   n2=len(pcd[0].points)
   pub_msg.publish("searcher::noise reduced "+str(n1)+"->"+str(n2))
-  if Config["proc"]==0: o3d.io.write_point_cloud("/tmp/model.ply",pcd[0])
+  if Config["proc"]==0: o3d.write_point_cloud("/tmp/model.ply",pcd[0])
   return pcd
 
 def learn_rot(pc,num,thres):

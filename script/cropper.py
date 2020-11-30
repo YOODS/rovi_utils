@@ -52,7 +52,7 @@ def voxel(data):
   if len(data)<10: return data
   d=np.asarray(data).astype(np.float32)
   pc=o3d.geometry.PointCloud()
-  pc.points=o3d.utility.Vector3dVector(d)
+  pc.points=o3d.Vector3dVector(d)
   rospy.loginfo("vec3d done")
   dwpc=o3d.geometry.voxel_down_sample(pc,voxel_size=mesh)
   rospy.loginfo("down sample done")
@@ -61,7 +61,7 @@ def voxel(data):
 def nf(data):
   d=np.asarray(data).astype(np.float32)
   pc=o3d.geometry.PointCloud()
-  pc.points=o3d.utility.Vector3dVector(d)
+  pc.points=o3d.Vector3dVector(d)
   nfmin=Param["nfmin"]
   if nfmin<=0: nfmin=1
   cl,ind=o3d.geometry.radius_outlier_removal(pc,nb_points=nfmin,radius=Param["nfrad"])
