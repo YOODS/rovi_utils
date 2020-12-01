@@ -20,7 +20,7 @@ def fit_func(prm,dat): #fir circle
 
 def solve(pcd,xc1,xc2,wid):
   P0=toNumpy(pcd)
-  w1=np.where(np.abs(P0.T[0]-xc1)<wid)
+  w1=np.where(np.abs(P0.T[0]-xc1)<wid/2)
   P1=P0[w1]
   G1=np.mean(P1,axis=0)
   result=optimize.leastsq(fit_func,G1,args=P1)
@@ -28,7 +28,7 @@ def solve(pcd,xc1,xc2,wid):
     print "rcalib_solver::scipy::optimize failed"
     return None
   res1=np.asarray(result[0])
-  w2=np.where(np.abs(P0.T[0]-xc2)<wid)
+  w2=np.where(np.abs(P0.T[0]-xc2)<wid/2)
   P2=P0[w2]
   G2=np.mean(P2,axis=0)
   result=optimize.leastsq(fit_func,G2,args=P2)
