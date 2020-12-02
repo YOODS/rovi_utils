@@ -7,7 +7,7 @@
     conf:=$(find rovi_utils)/config_tf/config_tf.zui
     dump:=$(find rovi_utils)/../$(arg result)
     lift:=False
-    geom:=300x300-0+5"
+    geom:=360x300-0+5"
   />
 
   <param name="/rovi/ycam/Mode" type="int" value="2" />
@@ -36,6 +36,6 @@
     conf:=$(find rovi_utils)/r-calib/rcalibV2.zui
     dump:=$(find rovi_utils)/r-calib/param.yaml
     lift:=False
-    geom:=300x500-0+350"
+    geom:=360x600-0+370"
   />
 </launch>
