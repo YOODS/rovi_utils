@@ -10,7 +10,6 @@ import sys
 Config={
   "set":[]
 }
-Params=[]
 
 def endkey(key,dic,n):
   for k in dic:
@@ -23,12 +22,16 @@ def endkey(key,dic,n):
 
 def cb_param(msg):
   global Params
-  for conf,param in zip(Config["set"],Params):
-    n=rospy.get_param(conf+"/paramsetN")
-    if n!=param["paramsetN"]:
-      param["paramsetN"]=n
-      endkey(conf,param["paramset"],n)
-  rospy.Timer(rospy.Duration(0.33),cb_param,oneshot=True)
+  for n,rc in enumerate(Config["set"]):  #to make "paramset" list
+    try:
+      param=rospy.get_param(rc)
+      if "paramsetN" in param:
+        setn=param["paramsetN"]
+        if "paramset" in param:
+          endkey(rc,param["paramset"],setn)
+    except Exception as e:
+      rospy.logwarn("Exception in parameset "+str(e))
+  rospy.Timer(rospy.Duration(1),cb_param,oneshot=True)
   return
 
 def parse_argv(argv):
@@ -50,15 +53,6 @@ except Exception as e:
 print "Config",Config
 
 Config["set"]=eval(Config["set"].replace('[','["').replace(']','"]').replace(',','","'))
-
-for rc in Config["set"]:  #to make "paramset" list
-  Params.append(rospy.get_param(rc))
-  if "paramset" not in Params[-1]:
-    print '"paramset" not in',rc
-    continue
-  if "paramsetN" not in Params[-1]:
-    Params[-1]["paramsetN"]=0
-    rospy.set_param(rc+"/paramsetN",Params[-1]["paramsetN"])
 
 rospy.Timer(rospy.Duration(1),cb_param,oneshot=True) #to check change of param
 
