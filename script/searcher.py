@@ -15,6 +15,7 @@ import yaml
 from rovi.msg import Floats
 from rospy.numpy_msg import numpy_msg
 from std_msgs.msg import Bool
+from std_msgs.msg import Int64
 from std_msgs.msg import String
 from std_msgs.msg import Float32MultiArray
 from std_msgs.msg import MultiArrayDimension
@@ -106,11 +107,17 @@ def learn_journal(pc,base,ofs,wid):
       print 'No journal'
       pub_err.publish("searcher::No journal")
 
+def cb_hash():
+  d=Int64()
+  d.data=hash(np.asarray(Model).tobytes())
+  pub_hash.publish(d)
+
 def cb_master(event):
   if Config["proc"]==0:
     for n,l in enumerate(Config["scenes"]):
       print "publish master",len(Model[n])
       if Model[n] is not None: pub_pcs[n].publish(np2F(Model[n]))
+  cb_hash()
 
 def cb_save(msg):
   global Model,tfReg
@@ -202,6 +209,7 @@ def cb_score():
     score.data.extend(Score[sc])
   pub_score.publish(score)
   pub_Y2.publish(mTrue)
+  cb_hash()
 
 def cb_solve(msg):
   global Score
@@ -212,6 +220,7 @@ def cb_solve(msg):
   Param.update(rospy.get_param("~param"))
   for key in Score: Score[key]=[]
   cb_busy(mTrue)
+  cb_hash()
   rospy.Timer(rospy.Duration(0.01),cb_solve_do,oneshot=True)
 
 def cb_solve_do(msg):
@@ -351,6 +360,7 @@ if Config["proc"]==0: rospy.Subscriber("~save",Bool,cb_save)
 rospy.Subscriber("~load",Bool,cb_load)
 if Config["proc"]==0: rospy.Subscriber("~redraw",Bool,cb_master)
 if Config["proc"]==0: rospy.Subscriber("/searcher/dump",Bool,cb_dump)
+pub_hash=rospy.Publisher("~hash",Int64,queue_size=1)
 pub_msg=rospy.Publisher("/message",String,queue_size=1)
 pub_err=rospy.Publisher("/error",String,queue_size=1)
 
