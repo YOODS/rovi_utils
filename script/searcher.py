@@ -15,6 +15,7 @@ import yaml
 from rovi.msg import Floats
 from rospy.numpy_msg import numpy_msg
 from std_msgs.msg import Bool
+from std_msgs.msg import Int64
 from std_msgs.msg import String
 from std_msgs.msg import Float32MultiArray
 from std_msgs.msg import MultiArrayDimension
@@ -117,14 +118,14 @@ def cb_save(msg):
 #save point cloud
   for n,l in enumerate(Config["scenes"]):
     if Scene[n] is None: continue
-    pc=o3d.PointCloud()
+    pc=o3d.geometry.PointCloud()
     m=Scene[n]
     if(len(m)==0):
       pub_err.publish("searcher::save::point cloud ["+l+"] has no point")
       pub_saved.publish(mFalse)
       return
     Model[n]=m
-    pc.points=o3d.Vector3dVector(m)
+    pc.points=o3d.utility.Vector3dVector(m)
     o3d.io.write_point_cloud(Config["path"]+"/"+l+".ply",pc,True,False)
     pub_pcs[n].publish(np2F(m))
   tfReg=[]
@@ -155,7 +156,7 @@ def cb_load(msg):
 #load point cloud
   for n,l in enumerate(Config["scenes"]):
     pcd=o3d.io.read_point_cloud(Config["path"]+"/"+l+".ply")
-    Model[n]=np.reshape(np.asarray(pcd.points),(-1,3))
+    Model[n]=np.reshape(np.array(pcd.points),(-1,3))
   rospy.Timer(rospy.Duration(0.1),cb_master,oneshot=True)
   tfReg=[]
 #load TF such as master/camera...
@@ -289,10 +290,10 @@ def cb_dump(msg):
 #dump informations
   for n,l in enumerate(Config["scenes"]):
     if Scene[n] is None: continue
-    pc=o3d.PointCloud()
+    pc=o3d.geometry.PointCloud()
     m=Scene[n]
     if(len(m)==0): continue
-    pc.points=o3d.Vector3dVector(m)
+    pc.points=o3d.utility.Vector3dVector(m)
     o3d.io.write_point_cloud("/tmp/"+l+".ply",pc,True,False)
 
 def cb_param(msg):
@@ -351,6 +352,7 @@ if Config["proc"]==0: rospy.Subscriber("~save",Bool,cb_save)
 rospy.Subscriber("~load",Bool,cb_load)
 if Config["proc"]==0: rospy.Subscriber("~redraw",Bool,cb_master)
 if Config["proc"]==0: rospy.Subscriber("/searcher/dump",Bool,cb_dump)
+pub_hash=rospy.Publisher("~hash",Int64,queue_size=1)
 pub_msg=rospy.Publisher("/message",String,queue_size=1)
 pub_err=rospy.Publisher("/error",String,queue_size=1)
 
