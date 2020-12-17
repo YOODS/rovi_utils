@@ -26,9 +26,8 @@ def toNumpy(pcd):
   return np.reshape(np.asarray(pcd.points),(-1,3))
 
 def fromNumpy(dat):
-  d=dat.astype(np.float32)
   pc=o3.PointCloud()
-  pc.points=o3.Vector3dVector(d)
+  pc.points=o3.Vector3dVector(dat)
   return pc
 
 def _get_features(cloud):

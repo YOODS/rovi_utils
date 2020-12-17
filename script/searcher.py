@@ -67,10 +67,7 @@ def np2F(d):  #numpy to Floats
   return f
 
 def learn_feat(mod,param):
-  n1=len(mod[0])
   pcd=solver.learn(mod,param)
-  n2=len(pcd[0].points)
-  pub_msg.publish("searcher::noise reduced "+str(n1)+"->"+str(n2))
   if Config["proc"]==0: o3d.write_point_cloud("/tmp/model.ply",pcd[0])
   return pcd
 
@@ -107,17 +104,11 @@ def learn_journal(pc,base,ofs,wid):
       print 'No journal'
       pub_err.publish("searcher::No journal")
 
-def cb_hash():
-  d=Int64()
-  d.data=hash(np.asarray(Model).tobytes())
-  pub_hash.publish(d)
-
 def cb_master(event):
   if Config["proc"]==0:
     for n,l in enumerate(Config["scenes"]):
       print "publish master",len(Model[n])
       if Model[n] is not None: pub_pcs[n].publish(np2F(Model[n]))
-  cb_hash()
 
 def cb_save(msg):
   global Model,tfReg
@@ -209,7 +200,6 @@ def cb_score():
     score.data.extend(Score[sc])
   pub_score.publish(score)
   pub_Y2.publish(mTrue)
-  cb_hash()
 
 def cb_solve(msg):
   global Score
@@ -220,7 +210,6 @@ def cb_solve(msg):
   Param.update(rospy.get_param("~param"))
   for key in Score: Score[key]=[]
   cb_busy(mTrue)
-  cb_hash()
   rospy.Timer(rospy.Duration(0.01),cb_solve_do,oneshot=True)
 
 def cb_solve_do(msg):
@@ -245,7 +234,7 @@ def cb_solve_do(msg):
         R=wrt[n][:3,:3]
         vr,jac=cv2.Rodrigues(R)
         rot.append(abs(np.ravel(vr)[2]))
-      tf=tflib.fromRT(wrt[np.argmin(np.asarray(rot))])
+      tf=tflib.fromRT(wrt[np.argmin(np.array(rot))])
     else:
       tf=tflib.fromRT(rt)
 
