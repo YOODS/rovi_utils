@@ -15,6 +15,7 @@ import yaml
 from rovi.msg import Floats
 from rospy.numpy_msg import numpy_msg
 from std_msgs.msg import Bool
+from std_msgs.msg import Int64
 from std_msgs.msg import String
 from std_msgs.msg import Float32MultiArray
 from std_msgs.msg import MultiArrayDimension
@@ -66,7 +67,6 @@ def np2F(d):  #numpy to Floats
   return f
 
 def learn_feat(mod,param):
-  n1=len(mod[0])
   pcd=solver.learn(mod,param)
   n2=len(pcd[0].points)
   pub_msg.publish("searcher::noise reduced "+str(n1)+"->"+str(n2))
@@ -236,7 +236,7 @@ def cb_solve_do(msg):
         R=wrt[n][:3,:3]
         vr,jac=cv2.Rodrigues(R)
         rot.append(abs(np.ravel(vr)[2]))
-      tf=tflib.fromRT(wrt[np.argmin(np.asarray(rot))])
+      tf=tflib.fromRT(wrt[np.argmin(np.array(rot))])
     else:
       tf=tflib.fromRT(rt)
 
@@ -351,6 +351,7 @@ if Config["proc"]==0: rospy.Subscriber("~save",Bool,cb_save)
 rospy.Subscriber("~load",Bool,cb_load)
 if Config["proc"]==0: rospy.Subscriber("~redraw",Bool,cb_master)
 if Config["proc"]==0: rospy.Subscriber("/searcher/dump",Bool,cb_dump)
+pub_hash=rospy.Publisher("~hash",Int64,queue_size=1)
 pub_msg=rospy.Publisher("/message",String,queue_size=1)
 pub_err=rospy.Publisher("/error",String,queue_size=1)
 

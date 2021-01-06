@@ -47,19 +47,21 @@ def cb_stats():
   judge=mTrue
   for key in Stats:
     val=Stats[key][pick]
+    stats[key]=(val,0)
     if key in Param:
       minval=Param[key]["min"]
       maxval=Param[key]["max"]
-      if val>maxval:
-        stats[key]=(val,1)
-        judge=mFalse
-      elif val<minval:
-        stats[key]=(val,-1)
-        judge=mFalse
+      if minval<maxval:
+        if val>maxval:
+          stats[key]=(val,1)
+          judge=mFalse
+        elif val<minval:
+          stats[key]=(val,-1)
+          judge=mFalse
       else:
-        stats[key]=(val,0)
-    else:
-      stats[key]=(val,0)
+        if val>maxval and val<minval:
+          stats[key]=(val,2)
+          judge=mFalse
   tf=TransformStamped()
   tf.header.stamp=rospy.Time.now()
   tf.header.frame_id=Config["solve_frame_id"]
@@ -73,7 +75,7 @@ def cb_stats():
   tf.transform.rotation.w=Stats["Qw"][pick]
   broadcaster.sendTransform([tf])
   pub_report.publish(str(stats))
-  pub_Y2.publish(judge)
+  rospy.Timer(rospy.Duration(0.1),lambda msg: pub_Y2.publish(judge))
   rospy.Timer(rospy.Duration(0.1),cb_redraw,oneshot=True)
   Stats={}
 
