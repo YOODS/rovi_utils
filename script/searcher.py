@@ -117,14 +117,14 @@ def cb_save(msg):
 #save point cloud
   for n,l in enumerate(Config["scenes"]):
     if Scene[n] is None: continue
-    pc=o3d.PointCloud()
+    pc=o3d.geometry.PointCloud()
     m=Scene[n]
     if(len(m)==0):
       pub_err.publish("searcher::save::point cloud ["+l+"] has no point")
       pub_saved.publish(mFalse)
       return
     Model[n]=m
-    pc.points=o3d.Vector3dVector(m)
+    pc.points=o3d.utility.Vector3dVector(m)
     o3d.io.write_point_cloud(Config["path"]+"/"+l+".ply",pc,True,False)
     pub_pcs[n].publish(np2F(m))
   tfReg=[]
@@ -155,7 +155,7 @@ def cb_load(msg):
 #load point cloud
   for n,l in enumerate(Config["scenes"]):
     pcd=o3d.io.read_point_cloud(Config["path"]+"/"+l+".ply")
-    Model[n]=np.reshape(np.asarray(pcd.points),(-1,3))
+    Model[n]=np.reshape(np.array(pcd.points),(-1,3))
   rospy.Timer(rospy.Duration(0.1),cb_master,oneshot=True)
   tfReg=[]
 #load TF such as master/camera...
@@ -289,10 +289,10 @@ def cb_dump(msg):
 #dump informations
   for n,l in enumerate(Config["scenes"]):
     if Scene[n] is None: continue
-    pc=o3d.PointCloud()
+    pc=o3d.geometry.PointCloud()
     m=Scene[n]
     if(len(m)==0): continue
-    pc.points=o3d.Vector3dVector(m)
+    pc.points=o3d.utility.Vector3dVector(m)
     o3d.io.write_point_cloud("/tmp/"+l+".ply",pc,True,False)
 
 def cb_param(msg):

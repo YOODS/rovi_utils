@@ -49,6 +49,7 @@ def cb_stats():
     val=Stats[key][pick]
     stats[key]=(val,0)
     if key in Param:
+      stats[key]=(val,0)
       minval=Param[key]["min"]
       maxval=Param[key]["max"]
       if minval<maxval:
@@ -59,7 +60,7 @@ def cb_stats():
           stats[key]=(val,-1)
           judge=mFalse
       else:
-        if val>maxval and val<minval:
+        if val<maxval and val>minval:
           stats[key]=(val,2)
           judge=mFalse
   tf=TransformStamped()

@@ -23,7 +23,7 @@ scnPcArray=[]
 score={"transform":[np.eye(4)],"fitness":[None],"rmse":[None]}
 
 def toNumpy(pcd):
-  return np.reshape(np.asarray(pcd.points),(-1,3))
+  return np.reshape(np.array(pcd.points),(-1,3))
 
 def fromNumpy(dat):
   pc=o3.geometry.PointCloud()
@@ -31,19 +31,18 @@ def fromNumpy(dat):
   return pc
 
 def _get_features(cloud):
-  o3.geometry.PointCloud.estimate_normals(cloud,o3.geometry.KDTreeSearchParamRadius(radius=Param["normal_radius"]))
+  cloud.estimate_normals(o3.geometry.KDTreeSearchParamRadius(radius=Param["normal_radius"]))
   viewpoint=np.array([0.0,0.0,0.0],dtype=float)
-  o3.geometry.PointCloud.orient_normals_towards_camera_location(cloud, camera_location=viewpoint)
+  cloud.orient_normals_towards_camera_location(camera_location=viewpoint)
   nfmin=Param["normal_min_nn"]
   if nfmin<=0: nfmin=1
-  cl,ind=o3.geometry.PointCloud.remove_radius_outlier(cloud,nb_points=nfmin,radius=Param["normal_radius"])
-#  nfcl=o3.geometry.PointCloud.select_by_index(cloud,ind)
-  nfcl=o3.geometry.PointCloud.select_down_sample(cloud,ind)
+  cl,ind=cloud.remove_radius_outlier(nb_points=nfmin,radius=Param["normal_radius"])
+  nfcl=cloud.select_down_sample(ind)
   cloud.points=nfcl.points
   cloud.normals=nfcl.normals
   cds=cloud
   if Param["feature_mesh"]>0:
-    cds=o3.geometry.PointCloud.voxel_down_sample(cloud,voxel_size=Param["feature_mesh"])
+    cds=cloud.voxel_down_sample(voxel_size=Param["feature_mesh"])
   return cds,o3.registration.compute_fpfh_feature(cds,o3.geometry.KDTreeSearchParamRadius(radius=Param["feature_radius"]))
 
 def learn(datArray,prm):
@@ -68,7 +67,7 @@ def solve(datArray,prm):
     scnPcArray.append(pc)
     scnFtArray.append(_get_features(pc))
   tfeat=time.time()-t1
-  print("time for calc feature",tfeat)
+  print "time for calc feature",tfeat
   t1=time.time()
   if Param["repeat"]!=len(score["transform"]):
     n=Param["repeat"]
@@ -97,7 +96,8 @@ def solve(datArray,prm):
       score["fitness"].append(result.fitness)
       score["rmse"].append(result.inlier_rmse)
   tmatch=time.time()-t1
-  print("time for feature matching",tmatch)
+  print "time for feature matching",tmatch
   score["tfeat"]=tfeat
   score["tmatch"]=tmatch
   return score
+

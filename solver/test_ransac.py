@@ -6,11 +6,11 @@ import copy
 from rovi_utils import ransac_solver as solver
 
 Param={
-  "distance_threshold": 0.002,
-  "feature_mesh": 0.002,
-  "feature_radius": 0.007,
-  "icp_threshold": 0.001,
-  "normal_radius": 0.003,
+  "distance_threshold": 10,
+  "feature_mesh": 4,
+  "feature_radius": 18,
+  "icp_threshold": 3,
+  "normal_radius": 8,
   "rotate":0,
   "repeat":1}
 
@@ -22,7 +22,7 @@ o3d.visualization.draw_geometries([model, scene])
 
 solver.learn([solver.toNumpy(model)],Param)
 result=solver.solve([solver.toNumpy(scene)],Param)
-print("Score",result["fitness"])
-print("Tmat",result["transform"])
+print "Score",result["fitness"]
+print "Tmat",result["transform"]
 model.transform(result["transform"][0])
 o3d.visualization.draw_geometries([model, scene])
