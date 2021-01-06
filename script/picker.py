@@ -75,7 +75,7 @@ def cb_stats():
   tf.transform.rotation.w=Stats["Qw"][pick]
   broadcaster.sendTransform([tf])
   pub_report.publish(str(stats))
-  pub_Y2.publish(judge)
+  rospy.Timer(rospy.Duration(0.1),lambda msg: pub_Y2.publish(judge))
   rospy.Timer(rospy.Duration(0.1),cb_redraw,oneshot=True)
   Stats={}
 
