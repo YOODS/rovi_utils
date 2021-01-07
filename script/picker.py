@@ -30,6 +30,10 @@ Stats={}
 def cb_redraw(event):
   pub_Y1.publish(mTrue)
 
+def cb_done(result):
+  pub_Y2.publish(result)
+  pub_Y1.publish(mTrue)
+
 def cb_stats():
   global Stats
   try:
@@ -75,8 +79,7 @@ def cb_stats():
   tf.transform.rotation.w=Stats["Qw"][pick]
   broadcaster.sendTransform([tf])
   pub_report.publish(str(stats))
-  rospy.Timer(rospy.Duration(0.1),lambda msg: pub_Y2.publish(judge))
-  rospy.Timer(rospy.Duration(0.1),cb_redraw,oneshot=True)
+  rospy.Timer(rospy.Duration(0.1),lambda event: cb_done(judge),oneshot=True)
   Stats={}
 
 def cb_score(msg):
