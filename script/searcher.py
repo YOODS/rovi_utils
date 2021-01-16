@@ -53,10 +53,7 @@ Score={
   "Qx":[],
   "Qy":[],
   "Qz":[],
-  "Qw":[],
-  "distance":[],
-  "azimuth":[],
-  "rotation":[]}
+  "Qw":[]}
 
 def P0():
   return np.array([]).reshape((-1,3))
@@ -252,15 +249,6 @@ def cb_solve_do(msg):
       Score[key]=[result[key]]*len(RTs)
     elif type(result[key][0]) is float: # float->list
       Score[key]=result[key]
-
-  for rt in RTs:
-    R=rt[:3,:3]
-    T=rt[:3,3]
-    Score["distance"].append(np.linalg.norm(T))
-    vz=np.ravel(R.T[2]) #basis vector Z
-    Score["azimuth"].append(np.arccos(np.dot(vz,np.array([0,0,1])))*180/np.pi)
-    vr,jac=cv2.Rodrigues(R)
-    Score["rotation"].append(np.ravel(vr)[2]*180/np.pi)
   cb_score()
 
 def cb_ps(msg,n):

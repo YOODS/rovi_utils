@@ -50,7 +50,7 @@ def voxel(data):
   mesh=Param["mesh"]
   if mesh==0: return data
   if len(data)<10: return data
-  d=np.asarray(data).astype(np.float32)
+  d=np.asarray(data)
   pc=o3d.geometry.PointCloud()
   pc.points=o3d.Vector3dVector(d)
   rospy.loginfo("vec3d done")
@@ -59,7 +59,7 @@ def voxel(data):
   return np.reshape(np.asarray(dwpc.points),(-1,3))
 
 def nf(data):
-  d=np.asarray(data).astype(np.float32)
+  d=np.asarray(data)
   pc=o3d.geometry.PointCloud()
   pc.points=o3d.Vector3dVector(d)
   nfmin=Param["nfmin"]

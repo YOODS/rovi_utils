@@ -8,6 +8,7 @@ import tf2_ros
 import copy
 import os
 import sys
+import cv2
 import functools
 from std_msgs.msg import Bool
 from std_msgs.msg import String
@@ -18,7 +19,9 @@ from rovi_utils import tflib
 
 Config={
   "multiplex":2,
-  "solve_frame_id":"camera/capture0"}
+  "solve_frame_id":"camera/capture0",
+  "reference_frame_id":"base",
+  "base_frame_id":"base"}
 Param={
   "fitness":{"min":0.8,"max":1},
   "rmse":{"min":0,"max":1000},
@@ -30,9 +33,64 @@ Stats={}
 def cb_redraw(event):
   pub_Y1.publish(mTrue)
 
-def cb_done(result):
-  pub_Y2.publish(result)
+def cb_done(b):
+  f=Bool()
+  f.data=b
+  pub_Y2.publish(f)
   pub_Y1.publish(mTrue)
+
+def cb_judge(dat):
+  res=True
+  for key in dat:
+    val=dat[key]
+    dat[key]=(val,0)
+    if key in Param:
+      minval=Param[key]["min"]
+      maxval=Param[key]["max"]
+      if minval<maxval:
+        if val>maxval:
+          dat[key]=(val,1)
+          res=False
+        elif val<minval:
+          dat[key]=(val,-1)
+          res=False
+      else:
+        if val>maxval and val<minval:
+          dat[key]=(val,2)
+          res=False
+  return dat,res
+
+def cb_tfchk():
+  stats={}
+#azimuth rotation
+  source=Config["reference_frame_id"]
+  target=Config["solve_frame_id"]+"/solve0"
+  try:
+    tfs=tfBuffer.lookup_transform(source,target,rospy.Time(0))
+    rTs=tflib.toRT(tfs.transform)
+  except (tf2_ros.LookupException,tf2_ros.ConnectivityException,tf2_ros.ExtrapolationException):
+    print "tf not found",source,target
+  else:
+    vz=np.ravel(rTs.T[:3,2]) #basis vector Z 
+    stats["azimuth"]=np.arccos(np.dot(vz,np.array([0,0,1])))*180/np.pi
+    vr,jac=cv2.Rodrigues(rTs[:3,:3])
+    stats["rotation"]=np.ravel(vr)[2]*180/np.pi
+#path
+  source=Config["base_frame_id"]
+  target=Config["solve_frame_id"]+"/solve0"
+  try:
+    tfs=tfBuffer.lookup_transform(source,target,rospy.Time(0))
+    bTs=tflib.toRT(tfs.transform)
+  except (tf2_ros.LookupException,tf2_ros.ConnectivityException,tf2_ros.ExtrapolationException):
+    print "tf not found",source,target
+  else:
+    stats["transX"]=bTs[0,3]
+    stats["transY"]=bTs[1,3]
+    stats["transZ"]=bTs[2,3]
+#check collision
+  stats,judge=cb_judge(stats)
+  pub_report.publish(str(stats))
+  cb_done(judge)
 
 def cb_stats():
   global Stats
@@ -47,25 +105,8 @@ def cb_stats():
     pick=wfit[0][amin]
   else:
     pick=np.argmin(Stats["Tz"])
-  stats={}
-  judge=mTrue
-  for key in Stats:
-    val=Stats[key][pick]
-    stats[key]=(val,0)
-    if key in Param:
-      minval=Param[key]["min"]
-      maxval=Param[key]["max"]
-      if minval<maxval:
-        if val>maxval:
-          stats[key]=(val,1)
-          judge=mFalse
-        elif val<minval:
-          stats[key]=(val,-1)
-          judge=mFalse
-      else:
-        if val>maxval and val<minval:
-          stats[key]=(val,2)
-          judge=mFalse
+  stats={key:lst[pick] for key,lst in Stats.items()}
+  stats,judge=cb_judge(stats)
   tf=TransformStamped()
   tf.header.stamp=rospy.Time.now()
   tf.header.frame_id=Config["solve_frame_id"]
@@ -79,7 +120,10 @@ def cb_stats():
   tf.transform.rotation.w=Stats["Qw"][pick]
   broadcaster.sendTransform([tf])
   pub_report.publish(str(stats))
-  rospy.Timer(rospy.Duration(0.1),lambda event: cb_done(judge),oneshot=True)
+  if not judge:
+    cb_done(False)
+  else:
+    rospy.Timer(rospy.Duration(0.1),lambda event: cb_tfchk(),oneshot=True)
   Stats={}
 
 def cb_score(msg):

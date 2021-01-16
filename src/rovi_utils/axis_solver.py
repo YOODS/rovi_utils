@@ -24,7 +24,7 @@ def solve(pcd,xc1,xc2,wid):
   P1=P0[w1]
   G1=np.mean(P1,axis=0)
   result=optimize.leastsq(fit_func,G1,args=P1)
-  if result[1]!=1:
+  if result[1] not in [1,2,3,4]:
     print "rcalib_solver::scipy::optimize failed"
     return None
   res1=np.asarray(result[0])
@@ -32,7 +32,7 @@ def solve(pcd,xc1,xc2,wid):
   P2=P0[w2]
   G2=np.mean(P2,axis=0)
   result=optimize.leastsq(fit_func,G2,args=P2)
-  if result[1]!=1:
+  if result[1] not in [1,2,3,4]:
     print "rcalib_solver::scipy::optimize failed"
     return None
   res2=np.asarray(result[0])
