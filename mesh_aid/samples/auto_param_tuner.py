@@ -19,7 +19,7 @@ DMY_MODEL_ROT_RANGE_Z_DEGREE = 180
 
 MESHES = [2,5,10]
 NORMAL_RADIUS_SCALES = ( 2, 3 , 4 ) # * mesh
-FEATURE_MESH_SCALES = ( 2, 3 ) # * mesh
+FEATURE_MESH_SCALES = [ 2 ] # * mesh
 FEATURE_RADIUS_SCALES = ( 4, 5 , 6 ) # * feature_mesh
 
 OUT_OF_RANK_VAL = 9999
@@ -46,7 +46,7 @@ def make_param(mesh, norm_rad_scale, ft_mesh_scale, ft_rad_scale):
     ft_mesh = ft_mesh_scale * mesh
     ft_rad = ft_rad_scale * ft_mesh
     dist_th = 1.5 * ft_mesh
-    icp_th = 1.0 * mesh
+    icp_th = 0.5 * mesh
     
     prms={
         "distance_threshold": dist_th,
@@ -274,6 +274,15 @@ def main(model_path, count):
 
                 # 移動ベクトル.
                 t = [ DMY_MODEL_TRANS_RANGE_X * random_pmone(), DMY_MODEL_TRANS_RANGE_Y * random_pmone(), DMY_MODEL_TRANS_RANGE_Z * random_pmone() ]
+                
+                ansRT = np.eye(4)
+                ansRT[:3, :3] = rot_ans.as_matrix()
+                ansRT[:3,  3] = t
+                
+                # ターゲットデータのコピーをとって、正解RTで変換
+                target_tmp = copy.deepcopy(target)
+                target_tmp.transform(ansRT)
+                
                 for ft_mesh_scale in FEATURE_MESH_SCALES:
                     for ft_rad_scale in FEATURE_RADIUS_SCALES:
                         ft_mesh = ft_mesh_scale * mesh
@@ -295,7 +304,6 @@ def main(model_path, count):
                         print("%05d: mesh=%.1f dmy_no=%3d [%d][%d][%d] start. %d/%d(%.2f)" %
                             (try_num, mesh, n, norm_rad_scale, ft_mesh_scale, ft_rad_scale, try_num,try_max_num,try_num/try_max_num * 100.0) )
            
-                        target_tmp = copy.deepcopy(target)
                         result=solver.solve([solver.toNumpy(target_tmp)],test_params)
         
                         retRT = result["transform"][0]
