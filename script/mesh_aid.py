@@ -23,7 +23,6 @@ TOPIC_EXEC_SOLVE = "/request/solve"
 TOPIC_CREATE = "~create"
 TOPIC_CLEAR = "~clear"
 TOPIC_TEST = "~test"
-TOPIC_PRESET = "~preset"
 
 Config={
   "proc":0,
@@ -43,8 +42,7 @@ PRESET_PARAM_SCALES = (
     (3,2,6)
 )
 
-Preset_idx=0
-
+### Solver Param
 #Param={
 #  "normal_radius":0.00399,
 #  "feature_radius":0.0199,
@@ -56,10 +54,13 @@ Preset_idx=0
 #  "cutter":{"base":0,"offset":0,"width":0}
 #}
 
+Param ={
+  "mesh_size" : 5.0,
+  "solver_prm_preset_no" : 0
+}
 
 Model_org_pcd=o3d.geometry.PointCloud
 Model_meshed_pcd=o3d.geometry.PointCloud
-Mesh_size=None
 
 def update_param_preset( mesh_size , preset_idx ):
   if preset_idx < 0 or len(PRESET_PARAM_SCALES) <= preset_idx:
@@ -87,15 +88,14 @@ def update_param( mesh, norm_rad_scale, ft_mesh_scale, ft_rad_scale):
   
   
   try:
-  
-    Param = rospy.get_param("~param")
-    rospy.loginfo("---------- Param (Before) -----")
-    pprint.pprint(Param)
-    Param.update(values)
-    rospy.set_param("~param",Param)
+    solv_prm = rospy.get_param("~solver_param")
+    rospy.loginfo("---------- Solver Param (Before) -----")
+    pprint.pprint(solv_prm)
+    solv_prm.update(values)
+    rospy.set_param("~solver_param",solv_prm)
     
-    rospy.loginfo("---------- Param (After) -----")
-    pprint.pprint(Param)
+    rospy.loginfo("---------- Solver Param (After) -----")
+    pprint.pprint(solv_prm)
     
   except Exception as e:
     rospy.logerr("update param exception:%s",e.args)
@@ -113,13 +113,19 @@ def get_model_path(suffix=""):
   return Config["path"] + "/" + Config["scenes"][0] + suffix +  ".ply"
 
 def cb_mesh_create(msg):
-  global Model_org_pcd,Model_meshed_pcd,pub_model_load,Mesh_size
+  global Model_org_pcd,Model_meshed_pcd,pub_model_load,Param
     
   start_tm = time.time()
-  Mesh_size = msg.data
-  rospy.loginfo("mesh create start. mesh_size=%.2f",Mesh_size)
-  if Mesh_size <= 0:
-    rospy.logerr("invalid meshsize.")
+  
+  try:
+    Param.update(rospy.get_param("~param"))
+  except Exception as e:
+    print "get_param exception:",e.args
+  
+  mesh_size = Param["mesh_size"]
+  rospy.loginfo("mesh create start. mesh_size=%.2f",mesh_size)
+  if mesh_size <= 0:
+    rospy.logerr("invalid mesh_size.")
     return
   
   model_org_path  = get_model_path(ORIGINAL_MODEL_FILE_SUFFIX)
@@ -134,7 +140,7 @@ def cb_mesh_create(msg):
   rospy.loginfo("original model data load finished. point count=%d",org_point_count)
   
   rospy.loginfo("downsampling start.")
-  Model_meshed_pcd = o3d.voxel_down_sample(Model_org_pcd, voxel_size = Mesh_size )
+  Model_meshed_pcd = o3d.voxel_down_sample(Model_org_pcd, voxel_size = mesh_size )
   
   meshed_point_count = len(np.asarray(Model_meshed_pcd.points))
   
@@ -156,22 +162,11 @@ def cb_mesh_create(msg):
 
 
 def cb_mesh_clear(msg):
-  global Model_org_pcd, Model_meshed_pcd, Mesh_size
+  global Model_org_pcd, Model_meshed_pcd, Param
   rospy.loginfo("mesh clear.")
   Model_org_pcd = o3d.geometry.PointCloud
   Model_meshed_pcd = o3d.geometry.PointCloud
-  Mesh_size = None
-
-def cb_preset_param(msg):
-  global Preset_idx
   
-  next_preset_idx = msg.data
-  if next_preset_idx < 0 or len(PRESET_PARAM_SCALES) <= next_preset_idx:
-    rospy.logerr("preset index out of bounds. 0 <= idx <= %d",len(PRESET_PARAM_SCALES) - 1 )
-    return
-  
-  rospy.loginfo("preset index changed. %d -> %d",Preset_idx,next_preset_idx)
-  Preset_idx = next_preset_idx
 
 def make_dummy_data(input,mesh_size):
   print("***** DEBUG DUMMY DATA LOADED *****")
@@ -191,22 +186,29 @@ def make_dummy_data(input,mesh_size):
   return dmy_data
   
 def cb_mesh_test(msg):
-  global Model_meshed_pcd, Mesh_size,Preset_idx
+  global Model_meshed_pcd, Param
   
-  if Mesh_size is None:
+  try:
+    Param.update(rospy.get_param("~param"))
+  except Exception as e:
+    print "get_param exception:",e.args
+  
+  mesh_size = Param["mesh_size"]
+  if mesh_size is None:
     rospy.logerr("meshed model data is none.")
     return
   elif Model_meshed_pcd.is_empty():
     rospy.logerr("meshed model data is empty.")
     return
   
-  rospy.loginfo("mesh test start. mesh_size=%.2f",Mesh_size)
+  rospy.loginfo("mesh test start. mesh_size=%.2f",mesh_size)
   
-  rospy.loginfo("solver parameter update start")
-  update_param_preset(Mesh_size,Preset_idx)
+  preset_idx = Param["solver_prm_preset_no"]
+  rospy.loginfo("solver parameter update start. preset_no=%d",preset_idx)
+  update_param_preset(mesh_size,preset_idx)
   rospy.loginfo("solver parameter update finished.")
   
-  dmy_pcd = make_dummy_data(Model_meshed_pcd, Mesh_size)
+  dmy_pcd = make_dummy_data(Model_meshed_pcd, mesh_size)
   
   mesh_flotas=np.ravel(np.asarray(dmy_pcd.points))
   
@@ -251,12 +253,21 @@ except Exception as e:
 rospy.loginfo("========== Config @mesh_aid ==========")
 pprint.pprint(Config)
 
+try:
+  if not rospy.has_param("~param"):
+    rospy.set_param("~param",Param)
+  else:
+    Param.update(rospy.get_param("~param"))
+except Exception as e:
+  print "get_param exception:",e.args
+rospy.loginfo("========== Param @mesh_aid ==========")
+pprint.pprint(Param)
+
 
 ###I/O
-rospy.Subscriber(TOPIC_CREATE, Float32, cb_mesh_create)
+rospy.Subscriber(TOPIC_CREATE, Bool, cb_mesh_create)
 rospy.Subscriber(TOPIC_CLEAR, Bool, cb_mesh_clear)
 rospy.Subscriber(TOPIC_TEST, Bool, cb_mesh_test)
-rospy.Subscriber(TOPIC_PRESET, Int64, cb_preset_param)
 
 pub_model_load = rospy.Publisher(TOPIC_MODEL_LOAD, Bool, queue_size=1)
 pub_scene_floats = rospy.Publisher(TOPIC_SCENE_DATA, numpy_msg(Floats) ,queue_size=1)
