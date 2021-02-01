@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 
 import cv2
 import numpy as np
@@ -14,6 +15,7 @@ from std_msgs.msg import Bool
 from std_msgs.msg import Int64
 from std_msgs.msg import String
 from std_msgs.msg import Float32
+from scipy.spatial.transform import Rotation
 
 ORIGINAL_MODEL_FILE_SUFFIX = "_org"
 
@@ -23,6 +25,10 @@ TOPIC_EXEC_SOLVE = "/request/solve"
 TOPIC_CREATE = "~create"
 TOPIC_CLEAR = "~clear"
 TOPIC_TEST = "~test"
+
+DMY_MODEL_ROT_RANGE_X_DEGREE = 30
+DMY_MODEL_ROT_RANGE_Y_DEGREE = 30
+DMY_MODEL_ROT_RANGE_Z_DEGREE = 180
 
 Config={
   "proc":0,
@@ -62,6 +68,10 @@ Param ={
 Model_org_pcd=o3d.geometry.PointCloud
 Model_meshed_pcd=o3d.geometry.PointCloud
 
+def random_pmone():
+    return 2.0 * np.random.rand() - 1.0
+    
+    
 def update_param_preset( mesh_size , preset_idx ):
   if preset_idx < 0 or len(PRESET_PARAM_SCALES) <= preset_idx:
     rospy.logerr("preset param scale index out of bounds.")
@@ -168,21 +178,17 @@ def cb_mesh_clear(msg):
   Model_meshed_pcd = o3d.geometry.PointCloud
   
 
-def make_dummy_data(input,mesh_size):
-  print("***** DEBUG DUMMY DATA LOADED *****")
-  dmy_data = o3d.geometry.PointCloud
-  
-  #****************** DEBUG CODE (1) ******************
-  #global Model_meshed_pcd
-  #dmy_data =  copy.deepcopy(Model_meshed_pcd)
-  #****************** DEBUG CODE (1)  ******************
-  
-  #****************** DEBUG CODE (2)  ******************
-  dmy_pcd_path = get_model_path("_%.1f" % (mesh_size))
-  rospy.loginfo("dummy data load path=%s",dmy_pcd_path)
-  dmy_data = o3d.read_point_cloud(dmy_pcd_path)
-  #****************** DEBUG CODE (2)  ******************
-  
+def make_dummy_data( input, mesh_size ):
+  # ‰ñ“]Šp“x‚ðƒ‰ƒ“ƒ_ƒ€‚ÉŒˆ’è
+  angles = [  DMY_MODEL_ROT_RANGE_X_DEGREE * random_pmone(),  # XŽ²‰ñ“].}30“x‚Ì”ÍˆÍ
+              DMY_MODEL_ROT_RANGE_Y_DEGREE * random_pmone(),  # YŽ²‰ñ“].}30“x‚Ì”ÍˆÍ
+              DMY_MODEL_ROT_RANGE_Z_DEGREE * random_pmone()]  # ZŽ²‰ñ“].}180“x‚Ì”ÍˆÍ
+  rot = Rotation.from_euler('zyx', angles, degrees=True)   # scipy.spatial.transform.RotationŒ^
+  rotMat = np.eye(4)
+  rotMat[:3, :3] = rot.as_dcm()
+
+  dmy_data = copy.deepcopy(input)
+  dmy_data.transform(rotMat)
   return dmy_data
   
 def cb_mesh_test(msg):
