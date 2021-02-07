@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 import cv2
 import numpy as np
@@ -19,7 +19,7 @@ trArray=[]
 def cb_reload(f):
   global trArray
   conf=rospy.get_param("~")
-  print "config_tf::reload",conf
+  print("config_tf::reload",conf)
   trArray=[]
   for name in conf:
     attr=conf[name]
@@ -39,7 +39,7 @@ def cb_update(t):
     if tr.child_frame_id==t.child_frame_id:
       tr.header.stamp=t.header.stamp
       tr.transform=t.transform
-      print "config_tf::update",t
+      print("config_tf::update",t)
   broadcaster.sendTransform(trArray)
 
 ###############################################################
@@ -54,4 +54,4 @@ cb_reload(Bool())
 try:
   rospy.spin()
 except KeyboardInterrupt:
-  print "Shutting down"
+  print("Shutting down")

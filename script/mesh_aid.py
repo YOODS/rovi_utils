@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import cv2
@@ -130,7 +130,7 @@ def cb_mesh_create(msg):
   try:
     Param.update(rospy.get_param("~param"))
   except Exception as e:
-    print "get_param exception:",e.args
+    print("get_param exception:",e.args)
   
   mesh_size = Param["mesh_size"]
   rospy.loginfo("mesh create start. mesh_size=%.2f",mesh_size)
@@ -141,7 +141,7 @@ def cb_mesh_create(msg):
   model_org_path  = get_model_path(ORIGINAL_MODEL_FILE_SUFFIX)
   
   rospy.loginfo("original model data load start. path=%s",model_org_path)
-  Model_org_pcd = o3d.read_point_cloud(model_org_path)
+  Model_org_pcd = o3d.io.read_point_cloud(model_org_path)
   if Model_org_pcd.is_empty():
     rospy.logerr("original model data load failed.")
     return
@@ -150,7 +150,7 @@ def cb_mesh_create(msg):
   rospy.loginfo("original model data load finished. point count=%d",org_point_count)
   
   rospy.loginfo("downsampling start.")
-  Model_meshed_pcd = o3d.voxel_down_sample(Model_org_pcd, voxel_size = mesh_size )
+  Model_meshed_pcd = o3d.geometry.PointCloud.voxel_down_sample(Model_org_pcd, voxel_size = mesh_size )
   
   meshed_point_count = len(np.asarray(Model_meshed_pcd.points))
   
@@ -159,7 +159,7 @@ def cb_mesh_create(msg):
   
   model_meshed_path  = get_model_path()
   rospy.loginfo("meshed model save start. path=%s",model_meshed_path)
-  if not o3d.write_point_cloud(model_meshed_path,Model_meshed_pcd):
+  if not o3d.io.write_point_cloud(model_meshed_path,Model_meshed_pcd):
     rospy.logerr("meshed model save  failed.")
   else:
     rospy.loginfo("meshed model save finished.")
@@ -179,11 +179,11 @@ def cb_mesh_clear(msg):
   
 
 def make_dummy_data( input, mesh_size ):
-  # ‰ñ“]Šp“x‚ğƒ‰ƒ“ƒ_ƒ€‚ÉŒˆ’è
-  angles = [  DMY_MODEL_ROT_RANGE_X_DEGREE * random_pmone(),  # X²‰ñ“].}30“x‚Ì”ÍˆÍ
-              DMY_MODEL_ROT_RANGE_Y_DEGREE * random_pmone(),  # Y²‰ñ“].}30“x‚Ì”ÍˆÍ
-              DMY_MODEL_ROT_RANGE_Z_DEGREE * random_pmone()]  # Z²‰ñ“].}180“x‚Ì”ÍˆÍ
-  rot = Rotation.from_euler('zyx', angles, degrees=True)   # scipy.spatial.transform.RotationŒ^
+  # ï¿½ï¿½]ï¿½pï¿½xï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½_ï¿½ï¿½ï¿½ÉŒï¿½ï¿½ï¿½
+  angles = [  DMY_MODEL_ROT_RANGE_X_DEGREE * random_pmone(),  # Xï¿½ï¿½ï¿½ï¿½].ï¿½}30ï¿½xï¿½Ì”Íˆï¿½
+              DMY_MODEL_ROT_RANGE_Y_DEGREE * random_pmone(),  # Yï¿½ï¿½ï¿½ï¿½].ï¿½}30ï¿½xï¿½Ì”Íˆï¿½
+              DMY_MODEL_ROT_RANGE_Z_DEGREE * random_pmone()]  # Zï¿½ï¿½ï¿½ï¿½].ï¿½}180ï¿½xï¿½Ì”Íˆï¿½
+  rot = Rotation.from_euler('zyx', angles, degrees=True)   # scipy.spatial.transform.Rotationï¿½^
   rotMat = np.eye(4)
   rotMat[:3, :3] = rot.as_dcm()
 
@@ -197,7 +197,7 @@ def cb_mesh_test(msg):
   try:
     Param.update(rospy.get_param("~param"))
   except Exception as e:
-    print "get_param exception:",e.args
+    print("get_param exception:",e.args)
   
   mesh_size = Param["mesh_size"]
   if mesh_size is None:
@@ -265,7 +265,7 @@ try:
   else:
     Param.update(rospy.get_param("~param"))
 except Exception as e:
-  print "get_param exception:",e.args
+  print("get_param exception:",e.args)
 rospy.loginfo("========== Param @mesh_aid ==========")
 pprint.pprint(Param)
 

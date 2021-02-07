@@ -65,7 +65,7 @@ def np2F(d):  #numpy to Floats
 
 def learn_feat(mod,param):
   pcd=solver.learn(mod,param)
-  if Config["proc"]==0: o3d.write_point_cloud("/tmp/model.ply",pcd[0])
+  if Config["proc"]==0: o3d.io.write_point_cloud("/tmp/model.ply",pcd[0])
   return pcd
 
 def learn_rot(pc,num,thres):
@@ -82,7 +82,7 @@ def learn_rot(pc,num,thres):
       tfReg.append(tf)
     else:
       RotAxis=None
-      print 'No axis'
+      print('No axis')
       pub_err.publish("searcher::No axis")
 
 def learn_journal(pc,base,ofs,wid):
@@ -98,13 +98,13 @@ def learn_journal(pc,base,ofs,wid):
       tf.transform=tflib.fromRT(JourAxis)
       tfReg.append(tf)
     else:
-      print 'No journal'
+      print('No journal')
       pub_err.publish("searcher::No journal")
 
 def cb_master(event):
   if Config["proc"]==0:
     for n,l in enumerate(Config["scenes"]):
-      print "publish master",len(Model[n])
+      print("publish master",len(Model[n]))
       if Model[n] is not None: pub_pcs[n].publish(np2F(Model[n]))
 
 def cb_save(msg):
@@ -112,15 +112,15 @@ def cb_save(msg):
 #save point cloud
   for n,l in enumerate(Config["scenes"]):
     if Scene[n] is None: continue
-    pc=o3d.PointCloud()
+    pc=o3d.geometry.PointCloud()
     m=Scene[n]
     if(len(m)==0):
       pub_err.publish("searcher::save::point cloud ["+l+"] has no point")
       pub_saved.publish(mFalse)
       return
     Model[n]=m
-    pc.points=o3d.Vector3dVector(m)
-    o3d.write_point_cloud(Config["path"]+"/"+l+".ply",pc,True,False)
+    pc.points=o3d.utility.Vector3dVector(m)
+    o3d.io.write_point_cloud(Config["path"]+"/"+l+".ply",pc,True,False)
     pub_pcs[n].publish(np2F(m))
   tfReg=[]
 #copy TF scene...->master... and save them
@@ -149,7 +149,7 @@ def cb_load(msg):
   global Model,tfReg,Param
 #load point cloud
   for n,l in enumerate(Config["scenes"]):
-    pcd=o3d.read_point_cloud(Config["path"]+"/"+l+".ply")
+    pcd=o3d.io.read_point_cloud(Config["path"]+"/"+l+".ply")
     Model[n]=np.reshape(np.asarray(pcd.points),(-1,3))
   rospy.Timer(rospy.Duration(0.1),cb_master,oneshot=True)
   tfReg=[]
@@ -177,7 +177,7 @@ def cb_load(msg):
       tf.transform=trf
       tfReg.append(tf)
   Param.update(rospy.get_param("~param"))
-  print 'learning pc',Param['rotate']
+  print('learning pc',Param['rotate'])
   pcd=learn_feat(Model,Param)
   learn_rot(pcd[0],Param['rotate'],Param['icp_threshold'])
   learn_journal(pcd[0],Param["cutter"]["base"],Param["cutter"]["offset"],Param["cutter"]["width"])
@@ -255,7 +255,7 @@ def cb_ps(msg,n):
   global Scene
   pc=np.reshape(msg.data,(-1,3))
   Scene[n]=pc
-  print "cb_ps",pc.shape
+  print("cb_ps",pc.shape)
 
 def cb_clear(msg):
   global Scene
@@ -275,11 +275,11 @@ def cb_dump(msg):
 #dump informations
   for n,l in enumerate(Config["scenes"]):
     if Scene[n] is None: continue
-    pc=o3d.PointCloud()
+    pc=o3d.geometry.PointCloud()
     m=Scene[n]
     if(len(m)==0): continue
-    pc.points=o3d.Vector3dVector(m)
-    o3d.write_point_cloud("/tmp/"+l+".ply",pc,True,False)
+    pc.points=o3d.utility.Vector3dVector(m)
+    o3d.io.write_point_cloud("/tmp/"+l+".ply",pc,True,False)
 
 def cb_param(msg):
   global Param
@@ -287,9 +287,9 @@ def cb_param(msg):
   try:
     Param.update(rospy.get_param("~param"))
   except Exception as e:
-    print "get_param exception:",e.args
+    print("get_param exception:",e.args)
   if prm!=Param:
-    print "Param changed",Param
+    print("Param changed",Param)
     learn_feat(Model,Param)
   rospy.Timer(rospy.Duration(1),cb_param,oneshot=True)
   return
@@ -310,13 +310,13 @@ Config.update(parse_argv(sys.argv))
 try:
   Config.update(rospy.get_param("~config"))
 except Exception as e:
-  print "get_param exception:",e.args
-print "Config",Config
+  print("get_param exception:",e.args)
+print("Config",Config)
 try:
   Param.update(rospy.get_param("~param"))
 except Exception as e:
-  print "get_param exception:",e.args
-print "Param",Param
+  print("get_param exception:",e.args)
+print("Param",Param)
 
 ###load solver
 exec("from rovi_utils import "+Config["solver"]+" as solver")
@@ -364,4 +364,4 @@ rospy.Timer(rospy.Duration(1),cb_param,oneshot=True)
 try:
   rospy.spin()
 except KeyboardInterrupt:
-  print "Shutting down"
+  print("Shutting down")
