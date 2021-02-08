@@ -43,7 +43,7 @@ def _get_features(cloud):
   cds=cloud
   if Param["feature_mesh"]>0:
     cds=o3d.geometry.PointCloud.voxel_down_sample(cloud,voxel_size=Param["feature_mesh"])
-  return cds,o3d.pipelines.registration.compute_fpfh_feature(cds,o3d.KDTreeSearchParamRadius(radius=Param["feature_radius"]))
+  return cds,o3d.pipelines.registration.compute_fpfh_feature(cds,o3d.geometry.KDTreeSearchParamRadius(radius=Param["feature_radius"]))
 
 def learn(datArray,prm):
   global modFtArray,modPcArray,Param
