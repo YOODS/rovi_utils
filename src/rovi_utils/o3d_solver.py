@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 import numpy as np
 import open3d as o3d
@@ -11,8 +11,8 @@ scnFtArray=[]
 scnPcArray=[]
 
 def feature_(pcd):
-  o3d.estimate_normals(pcd, o3d.KDTreeSearchParamHybrid(radius=param['radius_normal'], max_nn=param['maxnn_normal']))
-  ft = o3d.compute_fpfh_feature(pcd,o3d.KDTreeSearchParamHybrid(radius=param['radius_feature'],max_nn=param['maxnn_feature']))
+  o3d.geometry.PointCloud.estimate_normals(pcd, o3d.geometry.KDTreeSearchParamHybrid(radius=param['radius_normal'], max_nn=param['maxnn_normal']))
+  ft = o3d.pipelines.registration.compute_fpfh_feature(pcd,o3d.geometry.KDTreeSearchParamHybrid(radius=param['radius_feature'],max_nn=param['maxnn_feature']))
   return ft
 
 def match_():
@@ -20,20 +20,20 @@ def match_():
   source_fpfh=modFtArray[0]
   target=scnPcArray[0]
   target_fpfh=scnFtArray[0]
-  reg_global=o3d.registration_ransac_based_on_feature_matching(
+  reg_global=o3d.pipelines.registration.registration_ransac_based_on_feature_matching(
     source, target, source_fpfh, target_fpfh,
     param['distance_threshold'],
-    o3d.TransformationEstimationPointToPoint(False), 4,
-    [o3d.CorrespondenceCheckerBasedOnEdgeLength(0.9),
-    o3d.CorrespondenceCheckerBasedOnDistance(param['distance_threshold'])],
-    o3d.RANSACConvergenceCriteria(4000000, 500)
+    o3d.pipelines.registration.TransformationEstimationPointToPoint(False), 4,
+    [o3d.pipelines.registration.CorrespondenceCheckerBasedOnEdgeLength(0.9),
+    o3d.pipelines.registration.CorrespondenceCheckerBasedOnDistance(param['distance_threshold'])],
+    o3d.pipelines.registration.RANSACConvergenceCriteria(4000000, 500)
   )
   source.transform(reg_global.transformation)
   return reg_global,[source]
 #  source.transform(reg_global.transformation)
-#  reg_p2p = o3d.registration_icp(source, target, threshold, np.eye(4,dtype=float), o3d.TransformationEstimationPointToPoint())
+#  reg_p2p = o3d.pipelines.registration.registration_icp(source, target, threshold, np.eye(4,dtype=float), o3d.registration.TransformationEstimationPointToPoint())
 #  tf=np.dot(reg_p2p.transformation,reg_global.transformation)
-#  print "Transformation is:",tf
+#  print("Transformation is:",tf)
 #  source.transform(reg_p2p.transformation)
 #  return tf
 
@@ -42,8 +42,8 @@ def toNumpy(pcd):
 
 def fromNumpy(dat):
   d=dat.astype(np.float32)
-  pc=o3d.PointCloud()
-  pc.points=o3d.Vector3dVector(d)
+  pc=o3d.geometry.PointCloud()
+  pc.points=o3d.utility.Vector3dVector(d)
   return pc
 
 param={
@@ -79,14 +79,14 @@ def solve(datArray,prm):
   return {"transform":[res.transformation],"fitness":[res.fitness]}
 
 if __name__ == '__main__':
-  print "Prepare model"
-  pcd=o3d.read_point_cloud("model.ply")
+  print("Prepare model")
+  pcd=o3d.io.read_point_cloud("model.ply")
   learn([toNumpy(pcd)],{})
-  pcd=o3d.read_point_cloud("sample.ply")
+  pcd=o3d.io.read_point_cloud("sample.ply")
   result=solve([toNumpy(pcd)],{})
   Tmat=result["transform"]
   score=result["fitness"]
-  print "feature matching result",Tmat[0],score[0]
+  print("feature matching result",Tmat[0],score[0])
 
   P=copy.deepcopy(toNumpy(modPcArray[0]))
   P=np.dot(Tmat[0][:3],np.vstack((P.T,np.ones((1,len(P)))))).T
@@ -94,5 +94,5 @@ if __name__ == '__main__':
   target=scnPcArray[0]
   source.paint_uniform_color([1, 0.706, 0])
   target.paint_uniform_color([0, 0.651, 0.929])
-  o3d.draw_geometries([source, target])
+  o3d.visualization.draw_geometries([source, target])
 

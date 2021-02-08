@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 import numpy as np
 import open3d as o3d
@@ -14,15 +14,15 @@ def toNumpy(pcd):
   return np.reshape(np.asarray(pcd.points),(-1,3))
 def fromNumpy(dat):
   d=dat.astype(np.float32)
-  pc=o3d.PointCloud()
-  pc.points=o3d.Vector3dVector(d)
+  pc=o3d.geometry.PointCloud()
+  pc.points=o3d.utility.Vector3dVector(d)
   return pc
 def getImmovTf(T,pc0,thres):
   pc1=copy.deepcopy(pc0)
   pc1.transform(T)
-  reg=o3d.registration_icp(pc1,pc0,thres,np.eye(4,dtype=float),o3d.TransformationEstimationPointToPlane())
-#  print reg.fitness
-#  print reg.transformation
+  reg=o3d.pipelines.registration.registration_icp(pc1,pc0,thres,np.eye(4,dtype=float),o3d.pipelines.registration.TransformationEstimationPointToPlane())
+#  print(reg.fitness)
+#  print(reg.transformation)
   return np.dot(reg.transformation,T)
 def getwTx(N,pcd,thres):
   wTx=[]
@@ -51,7 +51,7 @@ def solve(pcd,num,thres):
     pcdw.transform(np.linalg.inv(sTw))  #move points to axis center
     wTx=getwTx(int(num),pcdw,thres)
     zbase=wTx[:,:,2][:,:3]
-#    print "symmetry zbase",zbase
+#    print("symmetry zbase",zbase)
     zmean=np.mean(zbase,axis=0)
     zmean=zmean/np.linalg.norm(zmean)
     zcross=np.cross(wTx[0,:,2][:3],zmean)  #angle would be small enough to aproximate as sin
