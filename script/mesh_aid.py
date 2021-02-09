@@ -70,7 +70,10 @@ Model_meshed_pcd=o3d.geometry.PointCloud
 
 def random_pmone():
     return 2.0 * np.random.rand() - 1.0
-    
+def np2F(d):  #numpy to Floats
+  f=Floats()
+  f.data=np.ravel(d)
+  return f
     
 def update_param_preset( mesh_size , preset_idx ):
   if preset_idx < 0 or len(PRESET_PARAM_SCALES) <= preset_idx:
@@ -151,7 +154,7 @@ def cb_mesh_create(msg):
   
   rospy.loginfo("downsampling start.")
   Model_meshed_pcd = o3d.voxel_down_sample(Model_org_pcd, voxel_size = mesh_size )
-  
+
   meshed_point_count = len(np.asarray(Model_meshed_pcd.points))
   
   rospy.loginfo("downsampling finished. before=%d, after=%d (%.2f%%)",
@@ -165,11 +168,15 @@ def cb_mesh_create(msg):
     rospy.loginfo("meshed model save finished.")
   
   rospy.loginfo("model create finished. proc_tm=%.3f sec" , ( time.time() - start_tm ))
-  
+
+  rospy.loginfo("dummy scene data publish start")
+  dmy_pcd = make_dummy_data(Model_meshed_pcd, mesh_size)
+  pub_scene_floats.publish(np2F(np.array(dmy_pcd.points)))
+  rospy.loginfo("dummy scene data publish finished.")
+
   msgModelLoad = Bool()
   msgModelLoad.data = True
   pub_model_load.publish(msgModelLoad)
-
 
 def cb_mesh_clear(msg):
   global Model_org_pcd, Model_meshed_pcd, Param
@@ -180,9 +187,11 @@ def cb_mesh_clear(msg):
 
 def make_dummy_data( input, mesh_size ):
   # ‰ñ“]Šp“x‚ðƒ‰ƒ“ƒ_ƒ€‚ÉŒˆ’è
-  angles = [  DMY_MODEL_ROT_RANGE_X_DEGREE * random_pmone(),  # XŽ²‰ñ“].}30“x‚Ì”ÍˆÍ
-              DMY_MODEL_ROT_RANGE_Y_DEGREE * random_pmone(),  # YŽ²‰ñ“].}30“x‚Ì”ÍˆÍ
-              DMY_MODEL_ROT_RANGE_Z_DEGREE * random_pmone()]  # ZŽ²‰ñ“].}180“x‚Ì”ÍˆÍ
+#  angles = [  DMY_MODEL_ROT_RANGE_X_DEGREE * random_pmone(),  # XŽ²‰ñ“].}30“x‚Ì”ÍˆÍ
+#              DMY_MODEL_ROT_RANGE_Y_DEGREE * random_pmone(),  # YŽ²‰ñ“].}30“x‚Ì”ÍˆÍ
+#              DMY_MODEL_ROT_RANGE_Z_DEGREE * random_pmone()]  # ZŽ²‰ñ“].}180“x‚Ì”ÍˆÍ
+#  angles = np.array([DMY_MODEL_ROT_RANGE_Z_DEGREE * random_pmone(),0,0])
+  angles = np.array([180,10,10])
   rot = Rotation.from_euler('zyx', angles, degrees=True)   # scipy.spatial.transform.RotationŒ^
   rotMat = np.eye(4)
   rotMat[:3, :3] = rot.as_dcm()
@@ -214,18 +223,11 @@ def cb_mesh_test(msg):
   update_param_preset(mesh_size,preset_idx)
   rospy.loginfo("solver parameter update finished.")
   
-  dmy_pcd = make_dummy_data(Model_meshed_pcd, mesh_size)
-  
-  mesh_flotas=np.ravel(np.asarray(dmy_pcd.points))
-  
-  #np.set_printoptions(threshold=np.inf)
-  #print(mesh_flotas)
-  
-  rospy.loginfo("scene data publish start. point count=%d (%d)", len(np.asarray(Model_meshed_pcd.points)), len(mesh_flotas))
-  
-  pub_scene_floats.publish(mesh_flotas)
-  
-  rospy.loginfo("scene data publish finished.")
+#  dmy_pcd = make_dummy_data(Model_meshed_pcd, mesh_size)
+#
+#  rospy.loginfo("scene data publish start")
+#  pub_scene_floats.publish(np2F(np.array(dmy_pcd.points)))
+#  rospy.loginfo("scene data publish finished.")
   
   rospy.loginfo("solver publish start.")
   msgSolver = Bool()
