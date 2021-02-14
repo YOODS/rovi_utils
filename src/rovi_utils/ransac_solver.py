@@ -80,6 +80,7 @@ def solve(datArray,prm):
         ransac_n=4,
         checkers=[],
         criteria=o3d.pipelines.registration.RANSACConvergenceCriteria(max_iteration=100000,max_validation=1000))
+        # criteria=o3d.pipelines.registration.RANSACConvergenceCriteria(max_iteration=100000,confidence=9.990000e-01))
       score["transform"][n]=result.transformation
       score["fitness"][n]=result.fitness
       score["rmse"][n]=result.inlier_rmse
