@@ -8,6 +8,7 @@ import open3d as o3d
 import copy
 import sys
 import time
+import random
 import pprint
 from rovi.msg import Floats
 from rospy.numpy_msg import numpy_msg
@@ -22,13 +23,6 @@ ORIGINAL_MODEL_FILE_SUFFIX = "_org"
 TOPIC_MODEL_LOAD = "/request/model_load"
 TOPIC_SCENE_DATA = "/scene/surface/floats"
 TOPIC_EXEC_SOLVE = "/request/solve"
-TOPIC_CREATE = "~create"
-TOPIC_CLEAR = "~clear"
-TOPIC_TEST = "~test"
-
-DMY_MODEL_ROT_RANGE_X_DEGREE = 30
-DMY_MODEL_ROT_RANGE_Y_DEGREE = 30
-DMY_MODEL_ROT_RANGE_Z_DEGREE = 180
 
 Config={
   "proc":0,
@@ -37,7 +31,9 @@ Config={
   "solver":"o3d_solver",
   "scene_frame_ids":[],
   "master_frame_ids":[],
-  "base_frame_id":"world"}
+  "base_frame_id":"world",
+  "scene_maker":[[45,5,0,0,0.7],[0,0,0,30,0.66],[0,10,0,30,0.66]]
+}
 
 # norm_rad_scale,ft_mesh_scale,ft_rad_scale
 PRESET_PARAM_SCALES = (
@@ -48,30 +44,32 @@ PRESET_PARAM_SCALES = (
     (3,2,6)
 )
 
-### Solver Param
+### Solver Param 
 #Param={
 #  "normal_radius":0.00399,
 #  "feature_radius":0.0199,
-#  "normal_min_nn":2599,
 #  "distance_threshold":0.199,
 #  "icp_threshold":0.00199,
-#  "rotate":0,
-#  "repeat":1,
-#  "cutter":{"base":0,"offset":0,"width":0}
 #}
 
 Param ={
   "mesh_size" : 5.0,
-  "solver_prm_preset_no" : 0
+  "solver_prm_preset_no" : 0,
 }
 
-Model_org_pcd=o3d.geometry.PointCloud
-Model_meshed_pcd=o3d.geometry.PointCloud
+Model_org_pcd=o3d.geometry.PointCloud()
+Model_meshed_pcd=o3d.geometry.PointCloud()
+Scene_pcd=o3d.geometry.PointCloud()
 
 def random_pmone():
     return 2.0 * np.random.rand() - 1.0
-    
-    
+def np2F(d):  #numpy to Floats
+  f=Floats()
+  f.data=np.ravel(d)
+  return f
+def P0():
+  return o3d.Vector3dVector(np.array([],dtype=np.float64).reshape((-1,3)))
+
 def update_param_preset( mesh_size , preset_idx ):
   if preset_idx < 0 or len(PRESET_PARAM_SCALES) <= preset_idx:
     rospy.logerr("preset param scale index out of bounds.")
@@ -95,8 +93,7 @@ def update_param( mesh, norm_rad_scale, ft_mesh_scale, ft_rad_scale):
     "distance_threshold": dist_th,
     "icp_threshold": icp_th
   }
-  
-  
+
   try:
     solv_prm = rospy.get_param("~solver_param")
     rospy.loginfo("---------- Solver Param (Before) -----")
@@ -122,10 +119,24 @@ def get_model_path(suffix=""):
       return ""
   return Config["path"] + "/" + Config["scenes"][0] + suffix +  ".ply"
 
+def do_redraw(ev):
+  global Scene_pcd
+  rospy.loginfo("dummy scene publish start")
+  pub_scene_floats.publish(np2F(np.array(Scene_pcd.points)))
+  rospy.loginfo("dummy scene publish finished.")
+
+def cb_redraw(msg):
+  rospy.Timer(rospy.Duration(0.1),do_redraw,oneshot=True)
+
+def cb_mesh_clear(msg):
+  global Model_org_pcd, Model_meshed_pcd, Scene_pcd
+  rospy.loginfo("mesh clear.")
+  Model_org_pcd = o3d.geometry.PointCloud()
+  Model_meshed_pcd = o3d.geometry.PointCloud()
+  Scene_pcd = o3d.geometry.PointCloud()
+
 def cb_mesh_create(msg):
-  global Model_org_pcd,Model_meshed_pcd,pub_model_load,Param
-    
-  start_tm = time.time()
+  global Model_org_pcd,Model_meshed_pcd,Scene_pcd,Param
   
   try:
     Param.update(rospy.get_param("~param"))
@@ -137,9 +148,11 @@ def cb_mesh_create(msg):
   if mesh_size <= 0:
     rospy.logerr("invalid mesh_size.")
     return
+
+  cb_mesh_clear(None)
   
   model_org_path  = get_model_path(ORIGINAL_MODEL_FILE_SUFFIX)
-  
+
   rospy.loginfo("original model data load start. path=%s",model_org_path)
   Model_org_pcd = o3d.io.read_point_cloud(model_org_path)
   if Model_org_pcd.is_empty():
@@ -151,7 +164,6 @@ def cb_mesh_create(msg):
   
   rospy.loginfo("downsampling start.")
   Model_meshed_pcd = o3d.geometry.PointCloud.voxel_down_sample(Model_org_pcd, voxel_size = mesh_size )
-  
   meshed_point_count = len(np.asarray(Model_meshed_pcd.points))
   
   rospy.loginfo("downsampling finished. before=%d, after=%d (%.2f%%)",
@@ -163,13 +175,9 @@ def cb_mesh_create(msg):
     rospy.logerr("meshed model save  failed.")
   else:
     rospy.loginfo("meshed model save finished.")
-  
-  rospy.loginfo("model create finished. proc_tm=%.3f sec" , ( time.time() - start_tm ))
-  
-  msgModelLoad = Bool()
-  msgModelLoad.data = True
-  pub_model_load.publish(msgModelLoad)
 
+  Scene_pcd = make_dummy_data(Model_meshed_pcd)
+  cb_redraw(True)
 
 def cb_mesh_clear(msg):
   global Model_org_pcd, Model_meshed_pcd, Param
@@ -212,26 +220,26 @@ def cb_mesh_test(msg):
   preset_idx = Param["solver_prm_preset_no"]
   rospy.loginfo("solver parameter update start. preset_no=%d",preset_idx)
   update_param_preset(mesh_size,preset_idx)
-  rospy.loginfo("solver parameter update finished.")
-  
-  dmy_pcd = make_dummy_data(Model_meshed_pcd, mesh_size)
-  
-  mesh_flotas=np.ravel(np.asarray(dmy_pcd.points))
-  
-  #np.set_printoptions(threshold=np.inf)
-  #print(mesh_flotas)
-  
-  rospy.loginfo("scene data publish start. point count=%d (%d)", len(np.asarray(Model_meshed_pcd.points)), len(mesh_flotas))
-  
-  pub_scene_floats.publish(mesh_flotas)
-  
-  rospy.loginfo("scene data publish finished.")
-  
-  rospy.loginfo("solver publish start.")
-  msgSolver = Bool()
-  msgSolver.data = True
-  pub_solve.publish(msgSolver)
-  rospy.loginfo("solver publish finished.")
+
+  msgModelLoad = Bool()
+  msgModelLoad.data = True
+  pub_model_load.publish(msgModelLoad)
+
+def make_dummy_data( pcd ):
+  pn=np.array([]).reshape((-1,3))
+  for arg in Config["scene_maker"]:
+    euler = np.array(arg[:3])
+    rot = Rotation.from_euler('zyx', euler, degrees=True)   # scipy.spatial.transform.Rotation
+    rotMat = np.eye(4)
+    rotMat[:3, :3] = rot.as_dcm()
+    rotMat[2,3] = arg[3]
+    p1 = np.array(pcd.points)
+    p2 = np.array(random.sample(list(p1),int(len(p1)*arg[4])))
+    p3 = rotMat.dot(np.vstack((p2.T,np.ones(len(p2))))).T[:,:3]
+    pn=np.vstack((pn,p3))
+  pcn = o3d.geometry.PointCloud()
+  pcn.points=o3d.Vector3dVector(pn)
+  return pcn
 
 def parse_argv(argv):
   args={}
@@ -271,9 +279,9 @@ pprint.pprint(Param)
 
 
 ###I/O
-rospy.Subscriber(TOPIC_CREATE, Bool, cb_mesh_create)
-rospy.Subscriber(TOPIC_CLEAR, Bool, cb_mesh_clear)
-rospy.Subscriber(TOPIC_TEST, Bool, cb_mesh_test)
+rospy.Subscriber("~create", Bool, cb_mesh_create)
+rospy.Subscriber("~clear", Bool, cb_mesh_clear)
+rospy.Subscriber("~redraw", Bool, cb_redraw)
 
 pub_model_load = rospy.Publisher(TOPIC_MODEL_LOAD, Bool, queue_size=1)
 pub_scene_floats = rospy.Publisher(TOPIC_SCENE_DATA, numpy_msg(Floats) ,queue_size=1)

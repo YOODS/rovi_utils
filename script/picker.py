@@ -67,23 +67,25 @@ def cb_tfchk():
   target=Config["solve_frame_id"]+"/solve0"
   try:
     tfs=tfBuffer.lookup_transform(source,target,rospy.Time(0))
-    rTs=tflib.toRT(tfs.transform)
   except (tf2_ros.LookupException,tf2_ros.ConnectivityException,tf2_ros.ExtrapolationException):
     print("tf not found",source,target)
   else:
-    vz=np.ravel(rTs.T[:3,2]) #basis vector Z 
+    rTs=tflib.toRT(tfs.transform)
+    vz=np.ravel(rTs[:3,2]) #basis vector Z
+    vz=vz/np.linalg.norm(vz)
     stats["azimuth"]=np.arccos(np.dot(vz,np.array([0,0,1])))*180/np.pi
     vr,jac=cv2.Rodrigues(rTs[:3,:3])
     stats["rotation"]=np.ravel(vr)[2]*180/np.pi
+    stats["norm"]=np.linalg.norm(rTs[:3,3])
 #path
   source=Config["base_frame_id"]
   target=Config["solve_frame_id"]+"/solve0"
   try:
     tfs=tfBuffer.lookup_transform(source,target,rospy.Time(0))
-    bTs=tflib.toRT(tfs.transform)
   except (tf2_ros.LookupException,tf2_ros.ConnectivityException,tf2_ros.ExtrapolationException):
     print("tf not found",source,target)
   else:
+    bTs=tflib.toRT(tfs.transform)
     stats["transX"]=bTs[0,3]
     stats["transY"]=bTs[1,3]
     stats["transZ"]=bTs[2,3]
