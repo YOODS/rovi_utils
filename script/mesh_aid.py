@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import cv2
@@ -141,7 +141,7 @@ def cb_mesh_create(msg):
   try:
     Param.update(rospy.get_param("~param"))
   except Exception as e:
-    print "get_param exception:",e.args
+    print("get_param exception:",e.args)
   
   mesh_size = Param["mesh_size"]
   rospy.loginfo("mesh create start. mesh_size=%.2f",mesh_size)
@@ -154,7 +154,7 @@ def cb_mesh_create(msg):
   model_org_path  = get_model_path(ORIGINAL_MODEL_FILE_SUFFIX)
 
   rospy.loginfo("original model data load start. path=%s",model_org_path)
-  Model_org_pcd = o3d.read_point_cloud(model_org_path)
+  Model_org_pcd = o3d.io.read_point_cloud(model_org_path)
   if Model_org_pcd.is_empty():
     rospy.logerr("original model data load failed.")
     return
@@ -163,7 +163,7 @@ def cb_mesh_create(msg):
   rospy.loginfo("original model data load finished. point count=%d",org_point_count)
   
   rospy.loginfo("downsampling start.")
-  Model_meshed_pcd = o3d.voxel_down_sample(Model_org_pcd, voxel_size = mesh_size )
+  Model_meshed_pcd = o3d.geometry.PointCloud.voxel_down_sample(Model_org_pcd, voxel_size = mesh_size )
   meshed_point_count = len(np.asarray(Model_meshed_pcd.points))
   
   rospy.loginfo("downsampling finished. before=%d, after=%d (%.2f%%)",
@@ -171,7 +171,7 @@ def cb_mesh_create(msg):
   
   model_meshed_path  = get_model_path()
   rospy.loginfo("meshed model save start. path=%s",model_meshed_path)
-  if not o3d.write_point_cloud(model_meshed_path,Model_meshed_pcd):
+  if not o3d.io.write_point_cloud(model_meshed_path,Model_meshed_pcd):
     rospy.logerr("meshed model save  failed.")
   else:
     rospy.loginfo("meshed model save finished.")
@@ -179,6 +179,44 @@ def cb_mesh_create(msg):
   Scene_pcd = make_dummy_data(Model_meshed_pcd)
   cb_redraw(True)
 
+def cb_mesh_clear(msg):
+  global Model_org_pcd, Model_meshed_pcd, Param
+  rospy.loginfo("mesh clear.")
+  Model_org_pcd = o3d.geometry.PointCloud
+  Model_meshed_pcd = o3d.geometry.PointCloud
+  
+
+def make_dummy_data( input, mesh_size ):
+  # ��]�p�x�������_���Ɍ���
+  angles = [  DMY_MODEL_ROT_RANGE_X_DEGREE * random_pmone(),  # X����].�}30�x�͈̔�
+              DMY_MODEL_ROT_RANGE_Y_DEGREE * random_pmone(),  # Y����].�}30�x�͈̔�
+              DMY_MODEL_ROT_RANGE_Z_DEGREE * random_pmone()]  # Z����].�}180�x�͈̔�
+  rot = Rotation.from_euler('zyx', angles, degrees=True)   # scipy.spatial.transform.Rotation�^
+  rotMat = np.eye(4)
+  rotMat[:3, :3] = rot.as_dcm()
+
+  dmy_data = copy.deepcopy(input)
+  dmy_data.transform(rotMat)
+  return dmy_data
+  
+def cb_mesh_test(msg):
+  global Model_meshed_pcd, Param
+  
+  try:
+    Param.update(rospy.get_param("~param"))
+  except Exception as e:
+    print("get_param exception:",e.args)
+  
+  mesh_size = Param["mesh_size"]
+  if mesh_size is None:
+    rospy.logerr("meshed model data is none.")
+    return
+  elif Model_meshed_pcd.is_empty():
+    rospy.logerr("meshed model data is empty.")
+    return
+  
+  rospy.loginfo("mesh test start. mesh_size=%.2f",mesh_size)
+  
   preset_idx = Param["solver_prm_preset_no"]
   rospy.loginfo("solver parameter update start. preset_no=%d",preset_idx)
   update_param_preset(mesh_size,preset_idx)
@@ -235,7 +273,7 @@ try:
   else:
     Param.update(rospy.get_param("~param"))
 except Exception as e:
-  print "get_param exception:",e.args
+  print("get_param exception:",e.args)
 rospy.loginfo("========== Param @mesh_aid ==========")
 pprint.pprint(Param)
 

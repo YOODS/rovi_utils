@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 import numpy as np
 import roslib
@@ -68,7 +68,7 @@ def cb_tfchk():
   try:
     tfs=tfBuffer.lookup_transform(source,target,rospy.Time(0))
   except (tf2_ros.LookupException,tf2_ros.ConnectivityException,tf2_ros.ExtrapolationException):
-    print "tf not found",source,target
+    print("tf not found",source,target)
   else:
     rTs=tflib.toRT(tfs.transform)
     vz=np.ravel(rTs[:3,2]) #basis vector Z
@@ -83,7 +83,7 @@ def cb_tfchk():
   try:
     tfs=tfBuffer.lookup_transform(source,target,rospy.Time(0))
   except (tf2_ros.LookupException,tf2_ros.ConnectivityException,tf2_ros.ExtrapolationException):
-    print "tf not found",source,target
+    print("tf not found",source,target)
   else:
     bTs=tflib.toRT(tfs.transform)
     stats["transX"]=bTs[0,3]
@@ -99,7 +99,7 @@ def cb_stats():
   try:
     Param.update(rospy.get_param("~param"))
   except Exception as e:
-    print "get_param exception:",e.args
+    print("get_param exception:",e.args)
   rospy.loginfo("picker::fitness "+str(Stats["fitness"]))
   wfit=np.where(Stats["fitness"]>Param["fitness"]["min"])
   if len(wfit[0])>0:
@@ -171,11 +171,11 @@ Config.update(parse_argv(sys.argv))
 try:
   Config.update(rospy.get_param("~config"))
 except Exception as e:
-  print "get_param exception:",e.args
+  print("get_param exception:",e.args)
 try:
   Param.update(rospy.get_param("~param"))
 except Exception as e:
-  print "get_param exception:",e.args
+  print("get_param exception:",e.args)
 
 ###Topics Service
 rospy.Subscriber("~clear",Bool,cb_clear)
@@ -194,4 +194,4 @@ broadcaster=tf2_ros.StaticTransformBroadcaster()
 try:
   rospy.spin()
 except KeyboardInterrupt:
-  print "Shutting down"
+  print("Shutting down")

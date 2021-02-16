@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 import cv2
 import numpy as np
@@ -52,20 +52,20 @@ def voxel(data):
   if len(data)<10: return data
   d=np.asarray(data)
   pc=o3d.geometry.PointCloud()
-  pc.points=o3d.Vector3dVector(d)
+  pc.points=o3d.utility.Vector3dVector(d)
   rospy.loginfo("vec3d done")
-  dwpc=o3d.geometry.voxel_down_sample(pc,voxel_size=mesh)
+  dwpc=o3d.geometry.PointCloud.voxel_down_sample(pc,voxel_size=mesh)
   rospy.loginfo("down sample done")
   return np.reshape(np.asarray(dwpc.points),(-1,3))
 
 def nf(data):
   d=np.asarray(data)
   pc=o3d.geometry.PointCloud()
-  pc.points=o3d.Vector3dVector(d)
+  pc.points=o3d.utility.Vector3dVector(d)
   nfmin=Param["nfmin"]
   if nfmin<=0: nfmin=1
-  cl,ind=o3d.geometry.radius_outlier_removal(pc,nb_points=nfmin,radius=Param["nfrad"])
-  dwpc=o3d.geometry.select_down_sample(pc,ind)
+  cl,ind=o3d.geometry.PointCloud.radius_outlier_removal(pc,nb_points=nfmin,radius=Param["nfrad"])
+  dwpc=o3d.geometry.PointCloud.select_by_index(pc,ind)
   return np.reshape(np.asarray(dwpc.points),(-1,3))
 
 def getRT(base,ref):
@@ -180,9 +180,9 @@ def cb_param(msg):
   try:
     Param.update(rospy.get_param("~param"))
   except Exception as e:
-    print "get_param exception:",e.args
+    print("get_param exception:",e.args)
   if prm!=Param:
-    print "Param changed",Param
+    print("Param changed",Param)
     crop()
   rospy.Timer(rospy.Duration(1),cb_param,oneshot=True) #Param update itself
   return
@@ -241,13 +241,13 @@ Config.update(parse_argv(sys.argv))
 try:
   Config.update(rospy.get_param("~config"))
 except Exception as e:
-  print "get_param exception:",e.args
-print "Config",Config
+  print("get_param exception:",e.args)
+print("Config",Config)
 try:
   Param.update(rospy.get_param("~param"))
 except Exception as e:
-  print "get_param exception:",e.args
-print "Param",Param
+  print("get_param exception:",e.args)
+print("Param",Param)
 
 ###Input topics
 rospy.Subscriber("~in/floats",numpy_msg(Floats),cb_ps)
@@ -281,5 +281,5 @@ rospy.Timer(rospy.Duration(1),cb_param,oneshot=True) #Param update itself
 try:
   rospy.spin()
 except KeyboardInterrupt:
-  print "Shutting down"
+  print("Shutting down")
 

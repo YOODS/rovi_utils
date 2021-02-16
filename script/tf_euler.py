@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 import numpy as np
 import rospy
@@ -65,7 +65,7 @@ def query(req):
   return res
 
 if filter(lambda s: s.startswith("__name:="),sys.argv):
-  print "tf_euler may be launched by roslaunch"
+  print("tf_euler may be launched by roslaunch")
   axes="sxyz"
   unit="deg"
   rospy.init_node('tf_euler')

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 import numpy as np
 import math
@@ -183,9 +183,9 @@ def toRTfromVec(vec):
 if __name__ == '__main__':
   vec=np.array([350, 0, 415, 0.35330038553 ,0.712956175793, -0.542718550391, -0.268940335466])
   tf=fromVec(vec)
-  print tf
+  print(tf)
   RT=toRT(tf)
-  print fromRT(RT)
+  print(fromRT(RT))
   TR=RT.I
   ft=fromRT(TR)
-  print ft
+  print(ft)

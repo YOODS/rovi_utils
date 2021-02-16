@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 import cv2
 import numpy as np
@@ -29,7 +29,7 @@ Config={
 
 def cb_X0(f):
   global cTsAry,bTmAry
-  print "cbX0"
+  print("cbX0")
   pb_msg.publish("rcalib::clear")
   cTsAry=[]
   bTmAry=[]
@@ -61,7 +61,7 @@ def cb_X1(f):
   return
 
 def save_input(name):
-  print "save input",len(bTmAry),len(cTsAry)
+  print("save input",len(bTmAry),len(cTsAry))
   Tcsv=np.array([]).reshape((-1,14))
   for M,S in zip(bTmAry,cTsAry):
     btm=tflib.fromRTtoVec(tflib.toRT(M))
@@ -82,13 +82,13 @@ def error(mTc,M,P):
     rvec,jacob=cv2.Rodrigues(bTp[:3,:3])
     bR=np.hstack((bR,rvec))
   tcen=np.mean(bT,axis=1).reshape((3,1))
-  print "t-mean",tcen
+  print("t-mean",tcen)
   terr=np.linalg.norm(bT-tcen,axis=0)
-  print "t-error mean/max",np.mean(terr),np.max(terr)
+  print("t-error mean/max",np.mean(terr),np.max(terr))
   rcen=np.mean(bR,axis=1).reshape((3,1))
-  print "r-center",rcen
+  print("r-center",rcen)
   rerr=np.linalg.norm(bR-rcen,axis=0)
-  print "r-error mean/max",np.mean(rerr),np.max(rerr)
+  print("r-error mean/max",np.mean(rerr),np.max(rerr))
   return np.max(terr),np.max(rerr)
 
 def set_param_tf(name,tf):
@@ -128,8 +128,8 @@ rospy.init_node('rcalib',anonymous=True)
 try:
   Config.update(rospy.get_param("~config"))
 except Exception as e:
-  print "get_param exception:",e.args
-print "Config",Config
+  print("get_param exception:",e.args)
+print("Config",Config)
 
 pb_msg=rospy.Publisher('/message',String,queue_size=1)
 pb_err=rospy.Publisher('/error',String,queue_size=1)
@@ -150,11 +150,11 @@ tfListener = tf2_ros.TransformListener(tfBuffer)
 
 config_tf=rospy.get_param(Config["config_tf"])
 camera_info=config_tf[Config["camera_frame_id"]]
-print "camera_info",camera_info
+print("camera_info",camera_info)
 Config["mount_frame_id"]=camera_info["parent_frame_id"]
-print "mount_frame",Config["mount_frame_id"]
+print("mount_frame",Config["mount_frame_id"])
 
 try:
   rospy.spin()
 except KeyboardInterrupt:
-  print "Shutting down"
+  print("Shutting down")

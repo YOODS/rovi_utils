@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 import cv2
 import numpy as np
@@ -28,7 +28,7 @@ def fit_func(prm,M1,P1,M2,P2):
 def solve(M,P):
   alen=np.linalg.norm(M[:,:3],axis=1)
   Weight=np.mean(alen)
-  print "weight",Weight
+  print("weight",Weight)
   Mn=copy.copy(M)
   Pn=copy.copy(P)
   Mn[:,:3]=Mn[:,:3]/Weight
@@ -41,18 +41,18 @@ def solve(M,P):
 #  P1=Dat1[0][7:14]
 #  M2=Dat2[0][:7]
 #  P2=Dat2[0][7:14]
-#  print fit_func([0,0,0,0,0,0],M1,P1,M2,P2)
+#  print(fit_func([0,0,0,0,0,0],M1,P1,M2,P2))
   M1=Dat1[:,:7].T
   P1=Dat1[:,7:14].T
   M2=Dat2[:,:7].T
   P2=Dat2[:,7:14].T
   result=optimize.leastsq(fit_func,[0,0,0,0,0,0],args=(M1,P1,M2,P2),maxfev=100000,ftol=0.000001)
   if result[1] not in [1,2,3,4]:
-    print "rcalib_solver::scipy::optimize failed"
+    print("rcalib_solver::scipy::optimize failed")
     return None
   result=np.asarray(result[0])
   result[:3]=result[:3]*Weight
-  print "solve result",result
+  print("solve result",result)
   R,jacob=cv2.Rodrigues(result[3:6])
   T=result[0:3].reshape((3,1))
   RT=np.vstack((np.hstack((R,T)),np.array([0,0,0,1]).reshape((1,4))))

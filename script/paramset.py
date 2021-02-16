@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 import numpy as np
 import roslib
@@ -49,8 +49,8 @@ Config.update(parse_argv(sys.argv))
 try:
   Config.update(rospy.get_param("~config"))
 except Exception as e:
-  print "get_param exception:",e.args
-print "Config",Config
+  print("get_param exception:",e.args)
+print("Config",Config)
 
 Config["set"]=eval(Config["set"].replace('[','["').replace(']','"]').replace(',','","'))
 
@@ -59,5 +59,5 @@ rospy.Timer(rospy.Duration(1),cb_param,oneshot=True) #to check change of param
 try:
   rospy.spin()
 except KeyboardInterrupt:
-  print "Shutting down"
+  print("Shutting down")
 

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 import numpy as np
 import roslib
@@ -50,8 +50,8 @@ def lookup(s):
 def query(req):
   res=TextFilterResponse()
   res.data=lookup(req.data)
-  print "tf_lookup req",req.data
-  print "tf_lookup res",res.data
+  print("tf_lookup req",req.data)
+  print("tf_lookup res",res.data)
   return res
 
 ########################################################
@@ -60,7 +60,7 @@ tfBuffer=tf2_ros.Buffer()
 listener=tf2_ros.TransformListener(tfBuffer)
 
 if filter(lambda s: s.startswith("__name:="),sys.argv):
-  print "tf_lookup may be launched by roslaunch"
+  print("tf_lookup may be launched by roslaunch")
   s=rospy.Service('/tf_lookup/query', TextFilter, query)
   rospy.spin()
 else:

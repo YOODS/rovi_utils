@@ -87,7 +87,7 @@ def get_pos():
 
   idx=count-1
   deg=Config['degs'][idx]
-  print 'deg[{}]={}'.format(idx,deg)
+  print('deg[{}]={}'.format(idx,deg))
   rad=np.array([map(lambda x: math.radians(x),deg)])
   mat,jac=cv2.Rodrigues(rad)
   rmat=np.eye(4)
@@ -141,11 +141,11 @@ broadcaster=tf2_ros.StaticTransformBroadcaster()
 
 config_tf=rospy.get_param(Config["config_tf"])
 camera_info=config_tf[Config["camera_frame_id"]]
-print "camera_info",camera_info
+print("camera_info",camera_info)
 Config["mount_frame_id"]=camera_info["parent_frame_id"]
-print "mount_frame",Config["mount_frame_id"]
+print("mount_frame",Config["mount_frame_id"])
 
 try:
   rospy.spin()
 except KeyboardInterrupt:
-  print "Shutting down"
+  print("Shutting down")
