@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 import cv2
 import numpy as np
@@ -17,26 +17,26 @@ def error(mTc,M,P):
     rvec,jacob=cv2.Rodrigues(bTp[:3,:3])
     bR=np.hstack((bR,rvec))
   tcen=np.mean(bT,axis=1).reshape((3,1))
-  print "t-mean",tcen
+  print("t-mean",tcen)
   terr=np.linalg.norm(bT-tcen,axis=0)
-  print "t-error mean/max",np.mean(terr),np.max(terr)
+  print("t-error mean/max",np.mean(terr),np.max(terr))
   rcen=np.mean(bR,axis=1).reshape((3,1))
-  print "r-center",rcen
+  print("r-center",rcen)
   rerr=np.linalg.norm(bR-rcen,axis=0)
-  print "r-error mean/max",np.mean(rerr),np.max(rerr)
+  print("r-error mean/max",np.mean(rerr),np.max(rerr))
   return np.max(terr),np.max(rerr)
 
 Tcsv=np.loadtxt("rcalib_input.txt").reshape((-1,14))
-#print Tcsv
+#print(Tcsv)
 
 poses=Tcsv[:,:7]
 grids=Tcsv[:,7:14]
 
-#print poses
-#print grids
+#print(poses)
+#print(grids)
 mTc=solver.solve(poses,grids)
 mtc=tflib.fromRT(mTc)
 
-print mtc
+print(mtc)
 
 Terr,Rerr=error(mTc,poses,grids)
