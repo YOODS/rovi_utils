@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 import cv2
 import numpy as np
@@ -167,7 +167,7 @@ def cb_load(msg):
       tf.transform.rotation.w=1
       tfReg.append(tf)
     else:
-      yd=yaml.load(f)
+      yd=yaml.load(f,Loader=yaml.SafeLoader)
       f.close()
       trf=tflib.dict2tf(yd)
       tf=TransformStamped()
@@ -200,7 +200,7 @@ def cb_score():
 
 def cb_solve(msg):
   global Score
-  if len(filter(lambda x:len(x)>0,Scene))==0:
+  if len(list(filter(lambda x:len(x)>0,Scene)))==0:
     pub_msg.publish("searcher::Lacked scene to solve")
     pub_Y2.publish(mFalse)
     return
