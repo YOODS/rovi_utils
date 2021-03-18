@@ -49,7 +49,10 @@ def solve(pcd,xc1,xc2,wid):
   if rnm>0:
     rot=rot/rnm*np.arcsin(rnm)
   r=R.from_rotvec(rot)
-  RT[:3,:3]=r.as_dcm()
+  # 2021/03/18 hato ------------------------------ start ------------------------------
+  #RT[:3,:3]=r.as_dcm()
+  RT[:3,:3]=r.as_matrix()
+  # 2021/03/18 hato ------------------------------  end  ------------------------------
   print("axis_solver",RT)
   return RT
 

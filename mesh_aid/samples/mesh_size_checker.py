@@ -1,4 +1,5 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
+# 2021/03/18 hato #!/usr/bin/env python -> !/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import open3d as o3d

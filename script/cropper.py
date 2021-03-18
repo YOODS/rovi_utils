@@ -64,7 +64,10 @@ def nf(data):
   pc.points=o3d.utility.Vector3dVector(d)
   nfmin=Param["nfmin"]
   if nfmin<=0: nfmin=1
-  cl,ind=o3d.geometry.PointCloud.radius_outlier_removal(pc,nb_points=nfmin,radius=Param["nfrad"])
+  # 2021/03/18 hato ------------------------------ start ------------------------------
+  #cl,ind=o3d.geometry.PointCloud.radius_outlier_removal(pc,nb_points=nfmin,radius=Param["nfrad"])
+  cl,ind = pc.remove_radius_outlier(nb_points=nfmin,radius=Param["nfrad"])
+  # 2021/03/18 hato ------------------------------  end  ------------------------------
   dwpc=o3d.geometry.PointCloud.select_by_index(pc,ind)
   return np.reshape(np.asarray(dwpc.points),(-1,3))
 
