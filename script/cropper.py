@@ -167,7 +167,10 @@ def cb_ps(msg): #callback of ps_floats
   pc=np.reshape(msg.data,(-1,3))
 #  pc=voxel(pc)
   srcArray.append(pc)
-  pub_report.publish(str({"pcount":np.sum(map(len,srcArray))}))
+  # 2021/03/18 hato ------------------------------ start ------------------------------
+  #pub_report.publish(str({"pcount":np.sum(map(len,srcArray))}))
+  pub_report.publish(str({"pcount":sum(len(v) for v in srcArray)}))
+  # 2021/03/18 hato ------------------------------  end ------------------------------
   raw()
   crop()
   pub_capture.publish(mTrue)
