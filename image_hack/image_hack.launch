@@ -1,0 +1,17 @@
+<launch>
+  <node pkg="rovi_utils" type="image_hack.py" name="" output="screen">
+    <remap from="~image_in1" to="image_in1" />
+    <remap from="~image_in2" to="image_in2" />
+    <remap from="~image_out" to="image_mix" />
+  </node>  -->
+  <node pkg="rovi_utils" type="image_hack_test.py" name="" args="
+    file:=$(find rovi_utils)/image_hack/image1.png
+    interval:=0.5">
+    <remap from="~image_out" to="image_in1" />
+  </node>
+  <node pkg="rovi_utils" type="image_hack_test.py" name="" args="
+    file:=$(find rovi_utils)/image_hack/image2.png
+    interval:=5">
+    <remap from="~image_out" to="image_in2" />
+  </node>
+</launch>
