@@ -4,16 +4,14 @@
   <rosparam command="load" file="$(find rovi_utils)/r-calib/param.yaml" />
   <node pkg="rovi_utils" type="config_tf.py" name="config_tf" />
   <node pkg="rtk_tools" type="panel.py" name="" args="
-    conf:=$(find rovi_utils)/config_tf/config_tf.zui
+    conf:=$(find rovi_utils)/r-calib/rcalib.zui
     dump:=$(find rovi_utils)/../$(arg result)
     lift:=False
-    geom:=300x300-0+5"
+    geom:=360x600-0+5"
   />
 
-  <param name="/rovi/live/camera/SoftwareTriggerRate" type="double" value="4" />
-  <param name="/rovi/live/camera/ExposureTime" type="double" value="5000" />
-  <param name="/rovi/live/camera/Gain" type="double" value="0" />
-  <param name="/rovi/pshift_genpc/projector/Mode" type="int" value="2" />
+  <param name="/rovi/ycam/Mode" type="int" value="2" />
+  <param name="/rovi/ycam/DrawCenterCross" type="bool" value="false" />
   <node pkg="rovi" type="grid_node" name="grid_node" args="/rovi/left/remap/Kn">
     <remap from="gridboard/image_in" to="/rovi/left/image_rect" />
     <remap from="gridboard/reload" to="/reload/gridboard" />
@@ -32,11 +30,5 @@
     <remap from="~solved" to="/response/solve" />
     <remap from="~count" to="/rcalib/count" />
   </node>
-  <!--   User interface  -->
-  <node pkg="rtk_tools" type="panel.py" name="" args="
-    conf:=$(find rovi_utils)/r-calib/rcalib.zui
-    dump:=$(find rovi_utils)/r-calib/param.yaml
-    lift:=False
-    geom:=300x500-0+350"
-  />
+  <node pkg="rovi_utils" type="initializer.py" name="initializer" output="screen" />
 </launch>
