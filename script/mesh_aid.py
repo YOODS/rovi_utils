@@ -32,16 +32,17 @@ Config={
   "scene_frame_ids":[],
   "master_frame_ids":[],
   "base_frame_id":"world",
-  "scene_maker":[[45,5,0,0,0.7],[0,0,0,30,0.66],[0,10,0,30,0.66]]
+  "scene_maker":[[45,5,0,0,0.7],[0,0,0,30,0.66],[0,10,0,30,0.66]],
+  "mesh_ref":""
 }
 
 # norm_rad_scale,ft_mesh_scale,ft_rad_scale
 PRESET_PARAM_SCALES = (
-    (2,2,5),
-    (2,2,6),
-    (3,2,4),
-    (3,2,5),
-    (3,2,6)
+    (2.5, 2.0, 3.6),
+    (3.2, 2.0, 4.0),
+    (4.0, 2.0, 4.5),
+    (5.0, 2.0, 5.0),
+    (6.0, 2.0, 6.0)
 )
 
 ### Solver Param 
@@ -54,7 +55,7 @@ PRESET_PARAM_SCALES = (
 
 Param ={
   "mesh_size" : 5.0,
-  "solver_prm_preset_no" : 0,
+  "solver_prm_preset_no" : 2,
 }
 
 Model_org_pcd=o3d.geometry.PointCloud()
@@ -83,9 +84,9 @@ def update_param( mesh, norm_rad_scale, ft_mesh_scale, ft_rad_scale):
   norm_rad = norm_rad_scale * mesh
   ft_mesh = ft_mesh_scale * mesh
   ft_rad = ft_rad_scale * ft_mesh
-  dist_th = 1.5 * ft_mesh
-  icp_th = 0.8 * mesh
-  
+  dist_th = 2.5 * ft_mesh
+  icp_th = 1.5 * mesh
+
   values={
     "normal_radius": norm_rad,
     "feature_mesh":  ft_mesh,
@@ -187,6 +188,18 @@ def cb_mesh_create(msg):
   msgModelLoad.data = True
   pub_model_load.publish(msgModelLoad)
 
+def cb_preset(msg):
+  print "mesh aid",Config["mesh_ref"]
+  if Config["mesh_ref"]!="":
+    mesh_size=rospy.get_param(Config["mesh_ref"])
+    try:
+      Param.update(rospy.get_param("~param"))
+    except Exception as e:
+      print "get_param exception:",e.args
+    preset_idx=Param["solver_prm_preset_no"]
+    print "preset",preset_idx
+    update_param_preset(mesh_size,preset_idx)
+
 def make_dummy_data( pcd ):
   pn=np.array([]).reshape((-1,3))
   for arg in Config["scene_maker"]:
@@ -244,6 +257,7 @@ pprint.pprint(Param)
 rospy.Subscriber("~create", Bool, cb_mesh_create)
 rospy.Subscriber("~clear", Bool, cb_mesh_clear)
 rospy.Subscriber("~redraw", Bool, cb_redraw)
+rospy.Subscriber("~preset", Bool, cb_preset)
 
 pub_model_load = rospy.Publisher(TOPIC_MODEL_LOAD, Bool, queue_size=1)
 pub_scene_floats = rospy.Publisher(TOPIC_SCENE_DATA, numpy_msg(Floats) ,queue_size=1)
