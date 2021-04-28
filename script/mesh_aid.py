@@ -227,15 +227,15 @@ def cb_mesh_test(msg):
   pub_model_load.publish(msgModelLoad)
 
 def cb_preset(msg):
-  print "mesh aid",Config["mesh_ref"]
+  print("mesh aid",Config["mesh_ref"])
   if Config["mesh_ref"]!="":
     mesh_size=rospy.get_param(Config["mesh_ref"])
     try:
       Param.update(rospy.get_param("~param"))
     except Exception as e:
-      print "get_param exception:",e.args
+      print("get_param exception:",e.args)
     preset_idx=Param["solver_prm_preset_no"]
-    print "preset",preset_idx
+    print("preset",preset_idx)
     update_param_preset(mesh_size,preset_idx)
 
 def make_dummy_data( pcd ):
