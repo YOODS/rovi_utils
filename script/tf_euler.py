@@ -13,7 +13,8 @@ axes="1"
 unit="rad"
 
 def euler_to_quat(toks):
-  p=np.array(map(float,toks))
+  #p=np.array(map(float,toks))
+  p=np.fromiter(toks,float)
   if axes.startswith("rvec"):
     rmat,jac=cv2.Rodrigues(p)
     m=np.eye(4)
