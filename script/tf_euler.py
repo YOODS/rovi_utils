@@ -13,7 +13,6 @@ axes="1"
 unit="rad"
 
 def euler_to_quat(toks):
-  #p=np.array(map(float,toks))
   p=np.fromiter(toks,float)
   if axes.startswith("rvec"):
     rmat,jac=cv2.Rodrigues(p)
@@ -26,7 +25,7 @@ def euler_to_quat(toks):
   return q
 
 def quat_to_euler(toks):
-  p=map(float,toks)
+  p=list(map(float,toks))
   if axes.startswith("rvec"):
     rmat=tf.transformations.quaternion_matrix(p)
     vec,jac=cv2.Rodrigues(rmat[:3,:3])
