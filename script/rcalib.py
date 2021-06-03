@@ -16,7 +16,8 @@ from std_msgs.msg import Int32
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Transform
 from geometry_msgs.msg import TransformStamped
-from rovi_utils import rcalib_solver as solver
+#from rovi_utils import rcalib_solver as solver
+from rovi_utils import cv2_solver as solver
 from rovi_utils import tflib
 
 Config={
