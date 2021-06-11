@@ -88,7 +88,7 @@ def get_pos():
   idx=count-1
   deg=Config['degs'][idx]
   print('deg[{}]={}'.format(idx,deg))
-  rad=np.array([map(lambda x: math.radians(x),deg)])
+  rad=np.fromiter([math.radians(x) for x in deg],float)
   mat,jac=cv2.Rodrigues(rad)
   rmat=np.eye(4)
   rmat[:3,:3]=mat
