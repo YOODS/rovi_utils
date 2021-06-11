@@ -1,0 +1,18 @@
+<launch>
+  <node pkg="rovi_utils" type="cv_test.py" name="" output="screen">
+    <remap from="~image_inL" to="/left/image" />
+    <remap from="~image_inR" to="/right/image" />
+    <remap from="~image_outL" to="/left/image_out" />
+    <remap from="~image_outR" to="/right/image_out" />
+  </node>
+  <node pkg="rovi_utils" type="image_hack_test.py" name="" args="
+    file:=$(find rovi_utils)/cv_test/image1.png
+    interval:=0.5">
+    <remap from="~image_out" to="/left/image" />
+  </node>
+  <node pkg="rovi_utils" type="image_hack_test.py" name="" args="
+    file:=$(find rovi_utils)/cv_test/image2.png
+    interval:=0.6">
+    <remap from="~image_out" to="/right/image" />
+  </node>
+</launch>
