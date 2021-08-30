@@ -1,0 +1,17 @@
+<launch>
+<!--  <node pkg="rovi_utils" type="image_hcat.py" name="" output="screen">
+    <remap from="~image_main" to="/rovi/left/image_rect" />
+    <remap from="~image_sub" to="/rovi/right/image_rect" />
+    <remap from="~image_out" to="/rovi/image_lr" />
+  </node> -->
+  <node pkg="rovi_test" type="image_pub.py" name="" args="
+    file:=$(find rovi_test)/capt_ex01/capt01_0.pgm
+    interval:=0.5">
+    <remap from="~image_out" to="/rovi/left/image_rect" />
+  </node>
+  <node pkg="rovi_test" type="image_pub.py" name="" args="
+    file:=$(find rovi_test)/capt_ex01/capt01_1.pgm
+    interval:=0.5">
+    <remap from="~image_out" to="/rovi/right/image_rect" />
+i  </node>
+</launch>
