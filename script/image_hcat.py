@@ -21,18 +21,34 @@ def imcat(imgs):
   disparity=max_loc[0]-lm
   if disparity<0:
     w2=-disparity
+    cx=w2
     imgR2=imgR[:,:w2,:]
     imgA=cv2.hconcat([imgR2,imgL])
     cv2.rectangle(imgA,(0,0),(w,h),(255,85,0),2)
     cv2.rectangle(imgA,(w2,0),(w2+w,h),(0,0,255),2)
   else:
     w2=disparity
+    cx=0
     imgR2=imgR[:,w-w2:,:]
     imgA=cv2.hconcat([imgL,imgR2])
     cv2.rectangle(imgA,(w2,0),(w2+w,h),(255,85,0),2)
     cv2.rectangle(imgA,(0,0),(w,h),(0,0,255),2)
-  zw=Qmat[2:,2:].dot(np.array([disparity,1]))
-  cv2.putText(imgA,str(int(zw[0]/zw[1])),(int((w2+w)/2),h), cv2.FONT_HERSHEY_PLAIN, 2, (0,255,0), 2, cv2.LINE_AA)
+  try:
+    Qmat=np.array(rospy.get_param('~Q')).reshape((4,4))
+  except Exception:
+    pass
+  else:
+    Zw=Qmat[2:,2:].dot(np.array([disparity,1]))
+    cv2.putText(imgA,str(int(Zw[0]/Zw[1])),(int((w2+w)/2),h), cv2.FONT_HERSHEY_PLAIN, 2, (0,255,0), 2, cv2.LINE_AA)
+  try:
+    Kmat=np.array(rospy.get_param('~K'))
+  except Exception:
+    pass
+  else:
+    cx = cx+int(Kmat[2])
+    cy = int(Kmat[5])	
+    cv2.line(imgA,(cx,cy),(cx+50,cy),(0,0,255),2,cv2.LINE_AA)
+    cv2.line(imgA,(cx,cy),(cx,cy+50),(255,0,0),2,cv2.LINE_AA)
   return imgA
 
 def msg2im(imgmsg):
@@ -71,10 +87,6 @@ if __name__ == "__main__":
   sub_main=rospy.Subscriber('~image_main',Image,cb_main)
   sub_sub=rospy.Subscriber('~image_sub',Image,cb_sub)
   pub_im=rospy.Publisher('~image_out',Image,queue_size=1)
-  try:
-    Qmat=np.array(rospy.get_param('~Q')).reshape((4,4))
-  except Exception:
-    Qmat=np.eye(4)
   try:
     rospy.spin()
   except KeyboardInterrupt:
