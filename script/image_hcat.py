@@ -48,15 +48,8 @@ def imcat(imgs):
     cx = cx+int(Kmat[2])
     cy = int(Kmat[5])	
     cv2.line(imgA,(cx,cy),(cx+50,cy),(0,0,255),2,cv2.LINE_AA)
-    cv2.line(imgA,(cx,cy),(cx,cy+50),(255,0,0),2,cv2.LINE_AA)
+    cv2.line(imgA,(cx,cy),(cx,cy+50),(0,255,0),2,cv2.LINE_AA)
   return imgA
-
-def msg2im(imgmsg):
-  try:
-    return bridge.imgmsg_to_cv2(imgmsg, "bgr8")
-  except CvBridgeError as e:
-    print("image_hcat error in cv_bridge",e)
-    return None
 
 def impub(im):
   try:
@@ -69,15 +62,23 @@ def impub(im):
 def cb_main(msg):
   global msgMain
   msgMain=msg
-  if msgMain.header.seq==msgSub.header.seq:
-    imc=imcat(list(map(msg2im,[msgMain,msgSub])))
+  if msgMain.header.seq!=msgSub.header.seq: return
+  try:
+    imc=imcat(list(map(lambda msg:bridge.imgmsg_to_cv2(msg,"bgr8"),[msgMain,msgSub])))
+  except CvBridgeError as e:
+    print("image_hcat error in cv_bridge",e)
+  else:
     impub(imc)
 
 def cb_sub(msg):
   global msgSub
   msgSub=msg
-  if msgMain.header.seq==msgSub.header.seq:
-    imc=imcat(list(map(msg2im,[msgMain,msgSub])))
+  if msgMain.header.seq!=msgSub.header.seq: return
+  try:
+    imc=imcat(list(map(lambda msg:bridge.imgmsg_to_cv2(msg,"bgr8"),[msgMain,msgSub])))
+  except CvBridgeError as e:
+    print("image_hcat error in cv_bridge",e)
+  else:
     impub(imc)
 
 ###############################################################
