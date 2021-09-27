@@ -34,4 +34,4 @@ if __name__ == "__main__":
   try:
     rospy.spin()
   except KeyboardInterrupt:
-    print "Shutting down"
+    print("Shutting down")

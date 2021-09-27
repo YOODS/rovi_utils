@@ -10,15 +10,24 @@ from sensor_msgs.msg import Image
 msgMain=Image()
 msgSub=Image()
 
+def imdis(imgl,imgr,lm):
+  h,w,d=imgr.shape
+  res=cv2.matchTemplate(imgl,imgr,cv2.TM_CCOEFF)
+  min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
+  dis=max_loc[0]-lm
+  return dis
+
 def imcat(imgs):
   imgL=imgs[0]
   imgR=imgs[1]
   h,w,d=imgR.shape
-  lm=int(w/3)
-  template=imgR[:,lm:int(w*2/3),:]
-  res=cv2.matchTemplate(imgL,template,cv2.TM_CCOEFF)
-  min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
-  disparity=max_loc[0]-lm
+  ht=int(h/5)
+  wt=int(w/5)
+  cor=np.array([])
+  for tm in np.arange(5,dtype=int)*ht:
+    cor=np.concatenate([cor,list(map(lambda lm:imdis(imgL[tm:tm+ht],imgR[tm:tm+ht,lm:lm+wt],lm),np.arange(5,dtype=int)*wt))])
+#  print(cor)
+  disparity=int(np.median(np.array(cor)))
   if disparity<0:
     w2=-disparity
     cx=w2

@@ -1,17 +1,22 @@
 <launch>
-<!--  <node pkg="rovi_utils" type="image_hcat.py" name="" output="screen">
+  <arg name="testdata" value="testY5" />
+  <node pkg="rovi_utils" type="image_hack_test.py" name="" output="screen" args="
+    file:=$(find rovi_utils)/image_hcat/$(arg testdata)/capt01_0.pgm
+    interval:=1">
+    <remap from="~image_out" to="/rovi/left/image_rect" />
+  </node>
+  <node pkg="rovi_utils" type="image_hack_test.py" name="" output="screen" args="
+    file:=$(find rovi_utils)/image_hcat/$(arg testdata)/capt01_1.pgm
+    interval:=1">
+    <remap from="~image_out" to="/rovi/right/image_rect" />
+  </node>
+<!--
+  <node pkg="rovi_utils" type="image_hcat.py" name="" output="screen">
     <remap from="~image_main" to="/rovi/left/image_rect" />
     <remap from="~image_sub" to="/rovi/right/image_rect" />
     <remap from="~image_out" to="/rovi/image_lr" />
-  </node> -->
-  <node pkg="rovi_test" type="image_pub.py" name="" args="
-    file:=$(find rovi_test)/capt_ex01/capt01_0.pgm
-    interval:=0.5">
-    <remap from="~image_out" to="/rovi/left/image_rect" />
+    <remap from="~Q" to="/rovi/genpc/Q" />
+    <remap from="~K" to="/rovi/left/remap/Kn" />
   </node>
-  <node pkg="rovi_test" type="image_pub.py" name="" args="
-    file:=$(find rovi_test)/capt_ex01/capt01_1.pgm
-    interval:=0.5">
-    <remap from="~image_out" to="/rovi/right/image_rect" />
-i  </node>
+-->
 </launch>
