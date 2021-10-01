@@ -16,6 +16,7 @@ from rovi.msg import Floats
 from rospy.numpy_msg import numpy_msg
 from std_msgs.msg import Bool
 from std_msgs.msg import Int64
+from std_msgs.msg import Float64
 from std_msgs.msg import String
 from std_msgs.msg import Float32MultiArray
 from std_msgs.msg import MultiArrayDimension
@@ -67,6 +68,22 @@ def learn_feat(mod,param):
   pcd=solver.learn(mod,param)
   if Config["proc"]==0: o3d.io.write_point_cloud("/tmp/model.ply",pcd[0])
   return pcd
+
+# マスター適合度（pvar）の計算
+def calc_pvar():
+  bins=np.array([-5,-4,-3,-2,-1,0,1,2,3,4,5])
+  ft=np.array(solver.modFtArray[0][1].data) #ソルバー内の法線特徴量をいただく
+  ft0=ft[:11] #33次元⇒11次元ごとに切り出す
+  ft1=ft[11:22]
+  ft2=ft[22:33]
+  ftsum=ft0+ft1+ft2 #11次元に足し合わせる
+  n=np.sum(ftsum,axis=0) #特徴点毎の法線数
+  s2=(bins*bins).dot(ftsum) #特徴点毎の分散を求める
+  s1=np.sqrt(s2/n) #σにする
+  ss=np.sort(s1)[::-1] #σの大きいもの順に特徴点を並べ替え
+  pvar=np.mean(ss[int(len(ss)*0.1):int(len(ss)*0.2)]) #全特徴点の大きい方から10～20%の平均σを指標にする
+  print('*** pvar = ',pvar,'\n')
+  return pvar
 
 def learn_rot(pc,num,thres):
   global RotAxis,tfReg
@@ -140,6 +157,8 @@ def cb_save(msg):
     tfReg.append(tf)
   if Config["proc"]==0: broadcaster.sendTransform(tfReg)
   pcd=learn_feat(Model,Param)
+  pvar=calc_pvar()
+  pub_pvar.publish(pvar)
   learn_rot(pcd[0],Param['rotate'],Param['icp_threshold'])
   pub_msg.publish("searcher::master plys and frames saved")
   pub_saved.publish(mTrue)
@@ -340,6 +359,7 @@ if Config["proc"]==0: rospy.Subscriber("/searcher/dump",Bool,cb_dump)
 pub_hash=rospy.Publisher("~hash",Int64,queue_size=1)
 pub_msg=rospy.Publisher("/message",String,queue_size=1)
 pub_err=rospy.Publisher("/error",String,queue_size=1)
+pub_pvar=rospy.Publisher("~pvar",Float64,queue_size=1)
 
 ###std_msgs/Bool
 mTrue=Bool()

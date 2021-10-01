@@ -7,7 +7,7 @@
     conf:=$(find rovi_utils)/r-calib/rcalib.zui
     dump:=$(find rovi_utils)/../$(arg result)
     lift:=False
-    geom:=360x600-0+5"
+    geom:=360x855-0+20"
   />
 
   <param name="/rovi/ycam/Mode" type="int" value="2" />
@@ -24,11 +24,13 @@
     <remap from="~captured" to="/response/capture" />
     <remap from="~solved" to="/response/solve" />
     <remap from="~count" to="/rcalib/count" />
+    <remap from="~Terror" to="/rcalib/Terror" />
+    <remap from="~Rerror" to="/rcalib/Rerror" />
   </node>
   <node pkg="rovi_utils" type="planner.py" name="planner" output="screen">
     <remap from="~solve" to="/request/solve" />
     <remap from="~solved" to="/response/solve" />
     <remap from="~count" to="/rcalib/count" />
   </node>
-  <node pkg="rovi_utils" type="initializer.py" name="initializer" output="screen" />
+  <!-- <node pkg="rovi_utils" type="initializer.py" name="initializer" output="screen" /> -->
 </launch>

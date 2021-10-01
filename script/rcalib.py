@@ -115,7 +115,8 @@ def call_visp():
   set_param_tf(Config["config_tf"]+"/"+Config["camera_frame_id"]+"/transform",mtc)
   pb_msg.publish("rcalib::visp solver success")
   Terr,Rerr=error(mTc,poses,grids)
-  err=Float64(); err.data=Terr; pb_stats.publish(err)
+  t_err=Float64(); t_err.data=Terr; pb_Terr.publish(t_err)
+  r_err=Float64(); r_err.data=np.rad2deg(Rerr); pb_Rerr.publish(r_err)
 
 def cb_X2(f):
   global cTsAry,bTmAry
@@ -134,7 +135,8 @@ print("Config",Config)
 
 pb_msg=rospy.Publisher('/message',String,queue_size=1)
 pb_err=rospy.Publisher('/error',String,queue_size=1)
-pb_stats=rospy.Publisher('~error',Float64,queue_size=1)
+pb_Terr=rospy.Publisher('~Terror',Float64,queue_size=1)
+pb_Rerr=rospy.Publisher('~Rerror',Float64,queue_size=1)
 pb_count=rospy.Publisher('~count',Int32,queue_size=1)
 pb_Y0=rospy.Publisher('~cleared',Bool,queue_size=1)    #X0 done
 pb_Y1=rospy.Publisher('~captured',Bool,queue_size=1)    #X1 done

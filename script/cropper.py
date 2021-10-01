@@ -24,7 +24,7 @@ from geometry_msgs.msg import TransformStamped
 from rovi_utils import tflib
 from scipy import optimize
 
-Param={"cropZ":0,"cropR":0,"mesh":0.001,"ladle":0,"ladleW":0,"nfrad":0,"nfmin":0}
+Param={"cropZ":0,"cropR":0,"mesh":0.001,"ladle":0,"ladleW":0,"nfrad":0,"nfmin":0,"wd":0}
 Config={
   "relay":"/rovi/X1",
   "base_frame_id":"world",
@@ -178,6 +178,7 @@ def cb_ps(msg): #callback of ps_floats
   Report['T13']=tps
   Report['tcap']=tps-Tcapt
   pub_report.publish(str(Report))
+  set_wd()
   return
 
 def cb_param(msg):
@@ -190,6 +191,7 @@ def cb_param(msg):
   if prm!=Param:
     print("Param changed",Param)
     crop()
+    set_wd()
   rospy.Timer(rospy.Duration(1),cb_param,oneshot=True) #Param update itself
   return
 
@@ -231,6 +233,19 @@ def cb_capture(msg):
 
 def cb_ansback(msg):
   if msg.data is False: pub_capture.publish(mFalse)
+
+def set_wd():
+  global Param,broadcaster
+  cTw=getRT(Config["base_frame_id"],Config["frame_id"])
+  cTw[0,3]=0
+  cTw[1,3]=0
+  cTw[2,3]=Param["wd"]
+  tf=TransformStamped()
+  tf.header.frame_id=Config["frame_id"]
+  tf.child_frame_id=Config["frame_id"]+"/wd"
+  tf.transform=tflib.fromRT(cTw)
+  broadcaster.sendTransform([tf])
+  return
 
 def parse_argv(argv):
   args={}

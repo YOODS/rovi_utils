@@ -120,7 +120,34 @@ def cb_stats():
   tf.transform.rotation.y=Stats["Qy"][pick]
   tf.transform.rotation.z=Stats["Qz"][pick]
   tf.transform.rotation.w=Stats["Qw"][pick]
-  broadcaster.sendTransform([tf])
+  btf=[tf]
+  cTw=getRT(Config["solve_frame_id"],Config["solve_frame_id"]+"/wd")
+  print("wd=", cTw[2,3])
+  if (cTw[2,3]>0):  # check if "/cropper/wd > 0"
+    wTc=np.linalg.inv(cTw)
+    cTc=tflib.toRT(tf.transform)
+    tfws=copy.deepcopy(tf)
+    tfws.header.frame_id=Config["solve_frame_id"]+"/wd"
+    tfws.child_frame_id=Config["solve_frame_id"]+"/wd/solve0"
+    tfws.transform=tflib.fromRT(wTc.dot(cTc).dot(cTw))
+    btf.append(tfws)
+    stats["Gx"]=tfws.transform.translation.x
+    stats["Gy"]=tfws.transform.translation.y
+    stats["Gz"]=tfws.transform.translation.z
+    stats["Rx"]=tfws.transform.rotation.x
+    stats["Ry"]=tfws.transform.rotation.y
+    stats["Rz"]=tfws.transform.rotation.z
+    stats["Rw"]=tfws.transform.rotation.w
+    # degrees of vector from wd to wd/solve0
+    rmat=tflib.toRT(tfws.transform)[:3,:3]
+    rvec,j=cv2.Rodrigues(rmat)
+    print('rvec.shape',rvec.shape,rvec)
+    rvec=np.ravel(rvec)
+    print('rvec.shape',rvec.shape,rvec)
+    stats["Vx"]=np.rad2deg(rvec[0])
+    stats["Vy"]=np.rad2deg(rvec[1])
+    stats["Vz"]=np.rad2deg(rvec[2])
+  broadcaster.sendTransform(btf)
   pub_report.publish(str(stats))
   if not judge:
     cb_done(False)
@@ -164,6 +191,15 @@ def parse_argv(argv):
       key = tokens[0]
       args[key]=tokens[1]
   return args
+
+def getRT(base,ref):
+  try:
+    ts=tfBuffer.lookup_transform(base,ref,rospy.Time())
+    rospy.loginfo("picker::getRT::TF lookup success "+base+"->"+ref)
+    RT=tflib.toRT(ts.transform)
+  except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+    RT=None
+  return RT
 
 ########################################################
 rospy.init_node("picker",anonymous=True)
