@@ -26,39 +26,40 @@ def imcat(imgs):
   cor=np.array([])
   for tm in np.arange(5,dtype=int)*ht:
     cor=np.concatenate([cor,list(map(lambda lm:imdis(imgL[tm:tm+ht],imgR[tm:tm+ht,lm:lm+wt],lm),np.arange(5,dtype=int)*wt))])
-#  print(cor)
-  disparity=int(np.median(np.array(cor)))
+  cor=cor[np.abs(cor)<w-wt]
+  cor.sort()
+  cor=cor[::-1]
+  dcor=cor-np.roll(cor,2)
+  dcor=np.floor(dcor[2:]/(w/40))
+  nm=np.argmin(np.abs(dcor))
+  disparity=int((cor[nm]+cor[nm+1]+cor[nm+2])/3)
   if disparity<0:
     w2=-disparity
-    cx=w2
-    imgR2=imgR[:,:w2,:]
-    imgA=cv2.hconcat([imgR2,imgL])
-    cv2.rectangle(imgA,(0,0),(w,h),(255,85,0),2)
-    cv2.rectangle(imgA,(w2,0),(w2+w,h),(0,0,255),2)
+    img_bgr = cv2.split(imgL)
+    cv2.rectangle(img_bgr[2],(w-w2,0),(w,h),(120),thickness=-1)
+    imgL=cv2.merge((img_bgr[0],img_bgr[1],img_bgr[2]))
   else:
     w2=disparity
-    cx=0
-    imgR2=imgR[:,w-w2:,:]
-    imgA=cv2.hconcat([imgL,imgR2])
-    cv2.rectangle(imgA,(w2,0),(w2+w,h),(255,85,0),2)
-    cv2.rectangle(imgA,(0,0),(w,h),(0,0,255),2)
+    img_bgr = cv2.split(imgL)
+    cv2.rectangle(img_bgr[2],(0,0),(w2,h),(120),thickness=-1)
+    imgL=cv2.merge((img_bgr[0],img_bgr[1],img_bgr[2]))
   try:
     Qmat=np.array(rospy.get_param('~Q')).reshape((4,4))
   except Exception:
     pass
   else:
     Zw=Qmat[2:,2:].dot(np.array([disparity,1]))
-    cv2.putText(imgA,str(int(Zw[0]/Zw[1])),(int((w2+w)/2),h), cv2.FONT_HERSHEY_PLAIN, 2, (0,255,0), 2, cv2.LINE_AA)
+    cv2.putText(imgL,str(int(Zw[0]/Zw[1])),(int(w/2),h), cv2.FONT_HERSHEY_PLAIN, 2, (0,255,0), 2, cv2.LINE_AA)
   try:
     Kmat=np.array(rospy.get_param('~K'))
   except Exception:
     pass
   else:
-    cx = cx+int(Kmat[2])
-    cy = int(Kmat[5])	
-    cv2.line(imgA,(cx,cy),(cx+50,cy),(0,0,255),2,cv2.LINE_AA)
-    cv2.line(imgA,(cx,cy),(cx,cy+50),(0,255,0),2,cv2.LINE_AA)
-  return imgA
+    cx = int(Kmat[2])
+    cy = int(Kmat[5])
+    cv2.line(imgL,(cx,cy),(int(cx+w/11),cy),(0,0,255),2,cv2.LINE_AA)
+    cv2.line(imgL,(cx,cy),(cx,int(cy+h/11)),(0,255,0),2,cv2.LINE_AA)
+  return imgL
 
 def impub(im):
   try:
