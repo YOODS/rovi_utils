@@ -35,13 +35,17 @@ def imcat(imgs):
   disparity=int((cor[nm]+cor[nm+1]+cor[nm+2])/3)
   if disparity<0:
     w2=-disparity
-    img_bgr = cv2.split(imgL)
-    cv2.rectangle(img_bgr[2],(w-w2,0),(w,h),(120),thickness=-1)
+    img_bgr=cv2.split(imgL)
+    imgd=img_bgr[0][0:h,w-w2:w]>>1
+    img_bgr[0][0:h,w-w2:w]=imgd
+    img_bgr[1][0:h,w-w2:w]=imgd
     imgL=cv2.merge((img_bgr[0],img_bgr[1],img_bgr[2]))
   else:
     w2=disparity
-    img_bgr = cv2.split(imgL)
-    cv2.rectangle(img_bgr[2],(0,0),(w2,h),(120),thickness=-1)
+    img_bgr=cv2.split(imgL)
+    imgd=img_bgr[0][0:h,0:w2]>>1
+    img_bgr[0][0:h,0:w2]=imgd
+    img_bgr[1][0:h,0:w2]=imgd
     imgL=cv2.merge((img_bgr[0],img_bgr[1],img_bgr[2]))
   try:
     Qmat=np.array(rospy.get_param('~Q')).reshape((4,4))
@@ -49,16 +53,19 @@ def imcat(imgs):
     pass
   else:
     Zw=Qmat[2:,2:].dot(np.array([disparity,1]))
-    cv2.putText(imgL,str(int(Zw[0]/Zw[1])),(int(w/2),h), cv2.FONT_HERSHEY_PLAIN, 2, (0,255,0), 2, cv2.LINE_AA)
+    ct=int(w/200)
+    cv2.putText(imgL,str(int(Zw[0]/Zw[1])),(int(w/2),h), cv2.FONT_HERSHEY_PLAIN, ct, (0,0,255), ct, cv2.LINE_AA)
   try:
     Kmat=np.array(rospy.get_param('~K'))
   except Exception:
     pass
   else:
-    cx = int(Kmat[2])
-    cy = int(Kmat[5])
-    cv2.line(imgL,(cx,cy),(int(cx+w/11),cy),(0,0,255),2,cv2.LINE_AA)
-    cv2.line(imgL,(cx,cy),(cx,int(cy+h/11)),(0,255,0),2,cv2.LINE_AA)
+    cx=int(Kmat[2])
+    cy=int(Kmat[5])
+    cl=int(w/11)
+    ct=int(w/200)
+    cv2.line(imgL,(cx,cy),(cx+cl,cy),(0,0,255),ct,cv2.LINE_AA)
+    cv2.line(imgL,(cx,cy),(cx,cy+cl),(0,255,0),ct,cv2.LINE_AA)
   return imgL
 
 def impub(im):
