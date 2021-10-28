@@ -10,6 +10,8 @@ from sensor_msgs.msg import Image
 msgMain=Image()
 msgSub=Image()
 
+Config={"div":5,"seq":3}
+
 def imdis(imgl,imgr,lm):
   h,w,d=imgr.shape
   res=cv2.matchTemplate(imgl,imgr,cv2.TM_CCOEFF)
@@ -18,21 +20,27 @@ def imdis(imgl,imgr,lm):
   return dis
 
 def imcat(imgs):
+  divs=Config["div"]
+  seqn=Config["seq"]
   imgL=imgs[0]
   imgR=imgs[1]
   h,w,d=imgR.shape
-  ht=int(h/5)
-  wt=int(w/5)
+  ht=int(h/divs)
+  wt=int(w/divs)
   cor=np.array([])
-  for tm in np.arange(5,dtype=int)*ht:
-    cor=np.concatenate([cor,list(map(lambda lm:imdis(imgL[tm:tm+ht],imgR[tm:tm+ht,lm:lm+wt],lm),np.arange(5,dtype=int)*wt))])
-  cor=cor[np.abs(cor)<w-wt]
-  cor.sort()
-  cor=cor[::-1]
-  dcor=cor-np.roll(cor,2)
-  dcor=np.floor(dcor[2:]/(w/40))
+  for tm in np.arange(divs,dtype=int)*ht:
+    cor=np.concatenate([cor,list(map(lambda lm:imdis(imgL[tm:tm+ht],imgR[tm:tm+ht,lm:lm+wt],lm),np.arange(divs,dtype=int)*wt))])
+  crs=np.sort(cor)[::-1]
+  dcor=crs-np.roll(crs,seqn)
+  dcor=np.floor(dcor[seqn:]/(w/40))
   nm=np.argmin(np.abs(dcor))
-  disparity=int((cor[nm]+cor[nm+1]+cor[nm+2])/3)
+  disparity=int(np.mean(crs[nm:nm+seqn]))
+  cor=cor.reshape((divs,divs))
+  cp=int((divs-3)/2)
+  crm=np.ravel(cor[cp:cp+3,cp:cp+3])
+  crm.sort()
+  dcen=int(np.mean(crm[2:-2]))
+  if disparity<dcen: disparity=dcen
   if disparity<0:
     w2=-disparity
     img_bgr=cv2.split(imgL)
@@ -53,19 +61,16 @@ def imcat(imgs):
     pass
   else:
     Zw=Qmat[2:,2:].dot(np.array([disparity,1]))
-    ct=int(w/200)
-    cv2.putText(imgL,str(int(Zw[0]/Zw[1])),(int(w/2),h), cv2.FONT_HERSHEY_PLAIN, ct, (0,0,255), ct, cv2.LINE_AA)
+    cv2.putText(imgL,str(int(Zw[0]/Zw[1])),(int(w/2),h), cv2.FONT_HERSHEY_PLAIN, 2, (0,255,0), 2, cv2.LINE_AA)
   try:
     Kmat=np.array(rospy.get_param('~K'))
   except Exception:
     pass
   else:
-    cx=int(Kmat[2])
-    cy=int(Kmat[5])
-    cl=int(w/11)
-    ct=int(w/200)
-    cv2.line(imgL,(cx,cy),(cx+cl,cy),(0,0,255),ct,cv2.LINE_AA)
-    cv2.line(imgL,(cx,cy),(cx,cy+cl),(0,255,0),ct,cv2.LINE_AA)
+    cx = int(Kmat[2])
+    cy = int(Kmat[5])
+    cv2.line(imgL,(cx,cy),(int(cx+w/11),cy),(0,0,255),2,cv2.LINE_AA)
+    cv2.line(imgL,(cx,cy),(cx,int(cy+h/11)),(0,255,0),2,cv2.LINE_AA)
   return imgL
 
 def impub(im):
