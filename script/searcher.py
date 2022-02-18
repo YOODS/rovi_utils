@@ -36,7 +36,7 @@ Param={
   "icp_threshold":0.001,
   "rotate":0,
   "repeat":1,
-  "cutter":{"base":0,"offset":0,"width":0}
+  "cutter":{"base":0,"offset":0,"width":0,"crop":0}
 }
 Config={
   "proc":0,
@@ -45,7 +45,8 @@ Config={
   "solver":"o3d_solver",
   "scene_frame_ids":[],
   "master_frame_ids":[],
-  "base_frame_id":"world"}
+  "base_frame_id":"world",
+  "align_frame_id":"camera/capture0"}
 Score={
   "proc":[],
   "Tx":[],
@@ -63,6 +64,15 @@ def np2F(d):  #numpy to Floats
   f=Floats()
   f.data=np.ravel(d)
   return f
+
+def getRT(base,ref):
+  try:
+    ts=tfBuffer.lookup_transform(base,ref,rospy.Time())
+    rospy.loginfo("cropper::getRT::TF lookup success "+base+"->"+ref)
+    RT=tflib.toRT(ts.transform)
+  except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+    RT=None
+  return RT
 
 def learn_feat(mod,param):
   pcd=solver.learn(mod,param)
@@ -195,11 +205,27 @@ def cb_load(msg):
       tf.child_frame_id=m
       tf.transform=trf
       tfReg.append(tf)
+      Param['transform']=tflib.toRT(trf)
   Param.update(rospy.get_param("~param"))
   print('learning pc',Param['rotate'])
   pcd=learn_feat(Model,Param)
   learn_rot(pcd[0],Param['rotate'],Param['icp_threshold'])
   learn_journal(pcd[0],Param["cutter"]["base"],Param["cutter"]["offset"],Param["cutter"]["width"])
+  if JourAxis is not None:
+    pcx=pcd[0].transform(JourAxis)
+    if Param["cutter"]["crop"]>0:  #crop outside
+      cx=Param["cutter"]["offset"]/2-Param["cutter"]["crop"]
+      box1=o3d.geometry.AxisAlignedBoundingBox(min_bound=(cx,-10000,-10000), max_bound=(10000,10000,10000))
+      pcx1=pcx.crop(box1)
+      pcd1=pcx1.transform(np.linalg.inv(JourAxis))
+      box2=o3d.geometry.AxisAlignedBoundingBox(min_bound=(-10000,-10000,-10000), max_bound=(-cx,10000,10000))
+      pcx2=pcx.crop(box2)
+      pcd2=pcx2.transform(np.linalg.inv(JourAxis))
+      Model[0]=np.concatenate((np.array(pcd1.points),np.array(pcd2.points)),axis=0)
+    elif Param["cutter"]["crop"]<0:  #crop inside
+      pass
+    learn_feat(Model,Param)
+    rospy.Timer(rospy.Duration(0.2),cb_master,oneshot=True)
   if Config["proc"]==0: broadcaster.sendTransform(tfReg)
   pub_msg.publish("searcher::model loaded and learning completed")
   pub_loaded.publish(mTrue)
@@ -239,18 +265,27 @@ def cb_solve_do(msg):
   else:
     pub_msg.publish("searcher::"+str(len(RTs))+" model searched")
 
+  cTb=getRT('camera/capture0','base')
+  xvec=cTb[:3,:3].T[0]
   for n,rt in enumerate(RTs):
+    print('Solve',tflib.fromRT(rt))
     tf=Transform()
     if RotAxis is not None:
       wrt=[]
       rot=[]
-      for n,wt in enumerate(RotAxis): #to minimumize the rotation
-        if n==0: wrt.append(rt)
+      for m,wt in enumerate(RotAxis): #to minimumize the rotation
+        if m==0: wrt.append(rt)
         else: wrt.append(np.dot(rt,wt))
         R=wrt[n][:3,:3]
-        vr,jac=cv2.Rodrigues(R)
-        rot.append(abs(np.ravel(vr)[2]))
+        rot.append(np.inner(R.T[0],xvec))
       tf=tflib.fromRT(wrt[np.argmin(np.array(rot))])
+      print('TF axis 1',tf)
+      solver.score["transform"][n]=tflib.toRT(tf)
+      Param["distance_threshold"]=0
+      Param["repeat"]=1
+      result=solver.solve(Scene,Param)
+      tf=tflib.fromRT(result["transform"][0])
+      print('TF axis 2',tf)
     else:
       tf=tflib.fromRT(rt)
 
