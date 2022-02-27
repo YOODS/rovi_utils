@@ -212,17 +212,23 @@ def cb_load(msg):
   learn_rot(pcd[0],Param['rotate'],Param['icp_threshold'])
   learn_journal(pcd[0],Param["cutter"]["base"],Param["cutter"]["offset"],Param["cutter"]["width"])
   if JourAxis is not None:
+    lvar=Param["cutter"]
     pcx=pcd[0].transform(JourAxis)
-    if Param["cutter"]["crop"]>0:  #crop outside
-      cx=Param["cutter"]["offset"]/2-Param["cutter"]["crop"]
-      box1=o3d.geometry.AxisAlignedBoundingBox(min_bound=(cx,-10000,-10000), max_bound=(10000,10000,10000))
+    if lvar["crop"]>0:  #crop outside
+      if lvar["offset"]>0:
+        cx1=lvar["base"]+lvar["crop"]
+        cx2=lvar["base"]+lvar["offset"]-lvar["crop"]
+      else:
+        cx1=lvar["base"]+lvar["offset"]+lvar["crop"]
+        cx2=lvar["base"]-lvar["crop"]
+      box1=o3d.geometry.AxisAlignedBoundingBox(min_bound=(-10000,-10000,-10000), max_bound=(cx1,10000,10000))
       pcx1=pcx.crop(box1)
       pcd1=pcx1.transform(np.linalg.inv(JourAxis))
-      box2=o3d.geometry.AxisAlignedBoundingBox(min_bound=(-10000,-10000,-10000), max_bound=(-cx,10000,10000))
+      box2=o3d.geometry.AxisAlignedBoundingBox(min_bound=(cx2,-10000,-10000), max_bound=(10000,10000,10000))
       pcx2=pcx.crop(box2)
       pcd2=pcx2.transform(np.linalg.inv(JourAxis))
       Model[0]=np.concatenate((np.array(pcd1.points),np.array(pcd2.points)),axis=0)
-    elif Param["cutter"]["crop"]<0:  #crop inside
+    elif lvar["crop"]<0:  #crop inside
       pass
     learn_feat(Model,Param)
     rospy.Timer(rospy.Duration(0.2),cb_master,oneshot=True)
